@@ -1,4 +1,4 @@
-import { useState } from 'react'
+// import { useState } from 'react'  // Will be used later
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
@@ -14,7 +14,7 @@ import { BookOpen, Mail, Lock, Loader2 } from 'lucide-react'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuthStore()
-  const [isLoading, setIsLoading] = useState(false)
+  // const [isLoading, setIsLoading] = useState(false)  // Will be used later
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>()
 
