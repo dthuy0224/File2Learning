@@ -23,15 +23,19 @@ export default function LoginPage() {
     onSuccess: async (tokenData) => {
       try {
         // Get user data after successful login
-        const userData = await authService.getCurrentUser()
+        const userData = await authService.fetchUser()
         login(tokenData.access_token, userData)
         toast.success('Welcome back!')
         navigate('/dashboard')
-      } catch (error) {
-        toast.error('Failed to get user data')
+      } catch (error: any) {
+        console.error('Error after login:', error)
+        toast.error(error.response?.data?.detail || 'Failed to get user data')
+        // Still login but without user data
+        login(tokenData.access_token, null)
       }
     },
     onError: (error: any) => {
+      console.error('Login error:', error)
       toast.error(error.response?.data?.detail || 'Login failed')
     }
   })
