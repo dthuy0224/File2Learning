@@ -24,8 +24,8 @@ export const authService = {
     const formData = new FormData()
     formData.append('username', data.username)
     formData.append('password', data.password)
-    
-    const response = await api.post('/auth/login', formData, {
+
+    const response = await api.post('/v1/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -34,17 +34,22 @@ export const authService = {
   },
 
   register: async (data: RegisterRequest): Promise<User> => {
-    const response = await api.post('/users/', data)
+    const response = await api.post('/v1/users/', data)
     return response.data
   },
 
   getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/users/me')
+    const response = await api.get('/v1/users/me')
     return response.data
   },
 
   testToken: async (): Promise<User> => {
-    const response = await api.post('/auth/test-token')
+    const response = await api.post('/v1/auth/test-token')
+    return response.data
+  },
+
+  fetchUser: async (): Promise<User> => {
+    const response = await api.get('/v1/users/me')
     return response.data
   },
 }

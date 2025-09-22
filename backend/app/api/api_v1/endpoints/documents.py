@@ -19,14 +19,10 @@ def read_documents(
     limit: int = 100,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Retrieve documents for current user.
-    """
     documents = document.get_by_user(
         db=db, user_id=current_user.id, skip=skip, limit=limit
     )
     return documents
-
 
 @router.post("/", response_model=Document)
 def create_document(
@@ -35,9 +31,6 @@ def create_document(
     document_in: DocumentCreate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Create new document.
-    """
     document_obj = document.create_with_owner(
         db=db, obj_in=document_in, owner_id=current_user.id
     )

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,7 +13,8 @@ export const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
-  if (token) {
+  // Don't add Authorization header to auth requests (login, register)
+  if (token && !config.url?.includes('/auth/')) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
