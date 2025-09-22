@@ -87,7 +87,7 @@ ai-learning-material/
 ## 📈 Development Roadmap
 
 - [x] Week 1: Project setup and infrastructure
-- [ ] Week 2: Database design and core API
+- [x] Week 2: Database design and core API
 - [ ] Week 3: Document processing pipeline
 - [ ] Week 4: AI integration and content generation
 - [ ] Week 5: Frontend foundation
