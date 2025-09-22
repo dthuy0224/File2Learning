@@ -24,7 +24,6 @@ def read_documents(
     )
     return documents
 
-
 @router.post("/", response_model=Document)
 def create_document(
     *,
