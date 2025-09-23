@@ -250,7 +250,6 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
     
     db.commit()
 
-
 def seed_database():
     """Main seeding function"""
     print("🌱 Starting database seeding...")

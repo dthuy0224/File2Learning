@@ -106,7 +106,6 @@ def show_schema():
     finally:
         db.close()
 
-
 if __name__ == "__main__":
     import argparse
     
