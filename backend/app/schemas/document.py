@@ -41,11 +41,9 @@ class DocumentInDBBase(DocumentBase):
     class Config:
         from_attributes = True
 
-
 # Properties to return to client
 class Document(DocumentInDBBase):
     pass
-
 
 # Properties stored in DB
 class DocumentInDB(DocumentInDBBase):

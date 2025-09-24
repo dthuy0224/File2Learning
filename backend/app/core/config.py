@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
+
+    # OAuth providers
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    MICROSOFT_CLIENT_ID: Optional[str] = None
+    MICROSOFT_CLIENT_SECRET: Optional[str] = None
+    GITHUB_CLIENT_ID: Optional[str] = None
+    GITHUB_CLIENT_SECRET: Optional[str] = None
+
+    # OAuth base URL for callbacks
+    OAUTH_BASE_URL: str = "http://localhost:8000"
     
     @field_validator("DATABASE_URL", mode="before")
     @classmethod

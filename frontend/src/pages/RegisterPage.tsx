@@ -6,11 +6,14 @@ import toast from 'react-hot-toast'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import SocialLoginButton from '../components/SocialLoginButton'
 import { authService, RegisterRequest } from '../services/authService'
+import { useAuthStore } from '../store/authStore'
 import { BookOpen, Mail, Lock, User, Loader2 } from 'lucide-react'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const { login } = useAuthStore()
 
   const { register, handleSubmit, formState: { errors }, watch } = useForm<RegisterRequest & { confirmPassword: string }>()
 
@@ -24,6 +27,12 @@ export default function RegisterPage() {
       toast.error(error.response?.data?.detail || 'Registration failed')
     }
   })
+
+  const handleSocialAuth = async (token: string, user: any) => {
+    login(token, user)
+    toast.success('Welcome! Your account has been created.')
+    navigate('/dashboard')
+  }
 
   const onSubmit = (data: RegisterRequest & { confirmPassword: string }) => {
     const { confirmPassword, ...registerData } = data
@@ -51,6 +60,44 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Social Registration */}
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-center text-gray-600 mb-3">
+                Create account with social login
+              </p>
+
+              <SocialLoginButton
+                provider="google"
+                onSuccess={handleSocialAuth}
+                onError={(error) => toast.error(`Google registration failed: ${error}`)}
+                disabled={registerMutation.isPending}
+              />
+
+              <SocialLoginButton
+                provider="microsoft"
+                onSuccess={handleSocialAuth}
+                onError={(error) => toast.error(`Microsoft registration failed: ${error}`)}
+                disabled={registerMutation.isPending}
+              />
+
+              <SocialLoginButton
+                provider="github"
+                onSuccess={handleSocialAuth}
+                onError={(error) => toast.error(`GitHub registration failed: ${error}`)}
+                disabled={registerMutation.isPending}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or register with email</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Full Name</label>
@@ -171,6 +218,19 @@ export default function RegisterPage() {
                 Already have an account?{' '}
                 <Link to="/login" className="text-blue-600 hover:underline font-medium">
                   Sign in here
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500">
+                By creating an account, you agree to our{' '}
+                <Link to="/terms" className="text-blue-600 hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="text-blue-600 hover:underline">
+                  Privacy Policy
                 </Link>
               </p>
             </div>
