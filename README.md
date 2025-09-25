@@ -15,7 +15,7 @@
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **PostgreSQL** - Production database
+- **PostgreSQL** - Production database (with SQLite for development)
 - **SQLAlchemy** - ORM with Alembic migrations
 - **LangChain** - LLM orchestration
 - **OpenAI API** - AI content generation
@@ -32,7 +32,34 @@
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- PostgreSQL (or Docker)
+- PostgreSQL (or Docker) for production
+- SQLite (default) for development
+
+### Database Setup
+
+#### Development (SQLite)
+```bash
+# Default setup - uses SQLite
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python -m alembic upgrade head
+python scripts/seed_data.py  # Optional: seed with sample data
+```
+
+#### Production (PostgreSQL)
+```bash
+# Using Docker (recommended)
+docker-compose up postgres -d
+docker-compose up backend
+
+# Or manual PostgreSQL setup
+export DATABASE_URL="postgresql+psycopg2://user:pass@localhost/dbname"
+python -m alembic upgrade head
+```
+
+**See [POSTGRESQL_MIGRATION_README.md](POSTGRESQL_MIGRATION_README.md) for detailed migration instructions.**
 
 ### Development Setup
 
