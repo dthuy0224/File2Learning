@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database seeding script for AI Learning Material Generator
+Database seeding script for File2Learning
 
 This script creates sample data for development and testing purposes.
 """

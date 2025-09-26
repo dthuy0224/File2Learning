@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - AI Learning Material Generator
+# 🚀 Quick Start Guide - File2Learning
 
 ## Prerequisites
 

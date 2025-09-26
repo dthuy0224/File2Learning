@@ -1,4 +1,4 @@
--- Initialize database for AI Learning Material Generator
+-- Initialize database for File2Learning
 -- This script runs when PostgreSQL container starts
 
 -- Create the main database if it doesn't exist

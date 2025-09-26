@@ -7,7 +7,7 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     # Basic app config
-    PROJECT_NAME: str = "AI Learning Material Generator"
+    PROJECT_NAME: str = "File2Learning"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
@@ -72,7 +72,7 @@ class Settings(BaseSettings):
             # PostgreSQL not available, fallback to SQLite
             print(f"⚠️  PostgreSQL not available ({e}), falling back to SQLite")
             print("🔧 Using SQLite for development fallback")
-            self.DATABASE_URL = self.SQLITE_DATABASE_URL
+            self.DATABASE_URL = self.DATABASE_URL
 
         # Log final database configuration
         print(f"📊 Final Database Configuration:")

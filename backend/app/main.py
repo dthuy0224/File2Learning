@@ -9,7 +9,7 @@ from app.api.api_v1.api import api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup events
-    print("🚀 AI Learning Material Generator is starting up...")
+    print("🚀 File2Learning is starting up...")
     yield
     # Shutdown events  
     print("👋 Shutting down...")
@@ -39,7 +39,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 async def root():
     return {
-        "message": "🎯 AI Learning Material Generator API",
+        "message": "🎯 File2Learning API",
         "version": settings.VERSION,
         "docs": "/docs",
         "status": "healthy"

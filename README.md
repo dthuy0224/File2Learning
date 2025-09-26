@@ -1,5 +1,4 @@
-# AI Learning Material Generator
-
+# File2Learning
 🎯 **AI-powered learning assistant** that converts English documents into interactive learning materials.
 
 ## 🚀 Features
