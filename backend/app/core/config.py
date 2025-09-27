@@ -23,62 +23,18 @@ class Settings(BaseSettings):
     # Database: file2learning (created in PostgreSQL container)
     DATABASE_URL: str = "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning"
 
-    # SQLite fallback for development (if PostgreSQL is not available)
-    SQLITE_DATABASE_URL: str = "sqlite:///./app.db"
-
     # PostgreSQL configuration - can be overridden via environment variable
     POSTGRESQL_DATABASE_URL: Optional[str] = None  # PostgreSQL URL for production
 
-    # Force PostgreSQL configuration (ignore environment variables)
-    # Logic: 1. Always try PostgreSQL connection with app_user
-    #        2. Fallback to SQLite only if PostgreSQL is unavailable
+    # PostgreSQL configuration - can be overridden via environment variable
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Force PostgreSQL connection (ignore environment variables)
-        # Always try to use PostgreSQL with app_user first
-        try:
-            import psycopg2
-            print("🔍 Testing PostgreSQL connection with app_user...")
-            # Try localhost first (for host machine), then postgres (for Docker)
-            for host in ["localhost", "postgres"]:
-                # Try app_user first, then postgres user as fallback
-                for user, password in [("app_user", "app_password"), ("postgres", "abc123")]:
-                    try:
-                        test_conn = psycopg2.connect(
-                            host=host,
-                            port=5432,
-                            database="file2learning",
-                            user=user,
-                            password=password
-                        )
-                        print(f"✅ PostgreSQL connection successful via {host} with user {user}!")
-                        # Store the working credentials
-                        self._working_user = user
-                        self._working_password = password
-                        break
-                    except Exception as host_error:
-                        print(f"⚠️  Cannot connect via {host} with user {user}: {host_error}")
-                        continue
-                else:
-                    continue  # Try next host
-                break  # Found working connection
-            else:
-                raise Exception("Cannot connect to PostgreSQL via localhost or postgres")
-            test_conn.close()
-            print("✅ PostgreSQL connection successful! Using PostgreSQL.")
-            # Use the working credentials
-            self.DATABASE_URL = f"postgresql+psycopg2://{self._working_user}:{self._working_password}@localhost:5432/file2learning"
-        except Exception as e:
-            # PostgreSQL not available, fallback to SQLite
-            print(f"⚠️  PostgreSQL not available ({e}), falling back to SQLite")
-            print("🔧 Using SQLite for development fallback")
-            self.DATABASE_URL = self.DATABASE_URL
 
-        # Log final database configuration
-        print(f"📊 Final Database Configuration:")
+        # Log database configuration
+        print(f"📊 Database Configuration:")
         print(f"   URL: {self.DATABASE_URL}")
-        print(f"   Type: {'PostgreSQL' if 'postgresql' in self.DATABASE_URL else 'SQLite'}")
-        print(f"   Database: {'file2learning' if 'postgresql' in self.DATABASE_URL else 'app.db'}")
+        print(f"   Type: PostgreSQL")
+        print(f"   Database: file2learning")
     
     # CORS
     ALLOWED_HOSTS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
@@ -133,13 +89,12 @@ class Settings(BaseSettings):
 
     def get_database_info(self) -> dict:
         """Get database configuration information"""
-        is_postgresql = "postgresql" in self.DATABASE_URL
         return {
-            "type": "PostgreSQL" if is_postgresql else "SQLite",
-            "database": "file2learning" if is_postgresql else "app.db",
+            "type": "PostgreSQL",
+            "database": "file2learning",
             "url": self.DATABASE_URL,
-            "host": "postgres" if is_postgresql else "local",
-            "connection_status": "Connected" if is_postgresql else "Fallback mode"
+            "host": "postgres",
+            "connection_status": "Connected"
         }
 
 

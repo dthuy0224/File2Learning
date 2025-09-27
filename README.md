@@ -14,7 +14,7 @@
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **PostgreSQL** - Production database (with SQLite for development)
+- **PostgreSQL** - Production database
 - **SQLAlchemy** - ORM with Alembic migrations
 - **LangChain** - LLM orchestration
 - **OpenAI API** - AI content generation
@@ -31,41 +31,44 @@
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- PostgreSQL (or Docker) for production
-- SQLite (default) for development
+- PostgreSQL (or Docker)
 
 ### Database Setup
 
-#### Development (SQLite)
+#### Using Docker (Recommended)
 ```bash
-# Default setup - uses SQLite
+# Start PostgreSQL and all services
+docker-compose up -d
+
+# Or start only database first
+docker-compose up postgres -d
+```
+
+#### Manual Setup
+```bash
+# Backend setup
 cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python -m alembic upgrade head
 python scripts/seed_data.py  # Optional: seed with sample data
+
+# Start backend
+uvicorn app.main:app --reload
+
+# Frontend setup (separate terminal)
+cd frontend
+npm install
+npm run dev
 ```
-
-#### Production (PostgreSQL)
-```bash
-# Using Docker (recommended)
-docker-compose up postgres -d
-docker-compose up backend
-
-# Or manual PostgreSQL setup
-export DATABASE_URL="postgresql+psycopg2://user:pass@localhost/dbname"
-python -m alembic upgrade head
-```
-
-**See [POSTGRESQL_MIGRATION_README.md](POSTGRESQL_MIGRATION_README.md) for detailed migration instructions.**
 
 ### Development Setup
 
 ```bash
 # 1. Clone repository
 git clone <repo-url>
-cd ai-learning-material
+cd File2Learning
 
 # 2. Start with Docker (recommended)
 docker-compose up -d
@@ -74,8 +77,10 @@ docker-compose up -d
 # Backend
 cd backend
 python -m venv venv
-.venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python -m alembic upgrade head  # Setup database
+python scripts/seed_data.py     # Optional: seed with sample data
 uvicorn app.main:app --reload
 
 # Frontend
@@ -87,7 +92,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-ai-learning-material/
+File2Learning/
 ├── backend/               # FastAPI backend
 │   ├── app/
 │   │   ├── api/          # API routes
@@ -96,6 +101,7 @@ ai-learning-material/
 │   │   ├── schemas/      # Pydantic schemas
 │   │   ├── crud/         # Database operations
 │   │   └── utils/        # Helper functions
+│   ├── scripts/          # Database and utility scripts
 │   ├── tests/            # Backend tests
 │   └── requirements.txt
 ├── frontend/             # React frontend
@@ -107,6 +113,7 @@ ai-learning-material/
 │   │   └── utils/        # Helper functions
 │   └── package.json
 ├── docker-compose.yml    # Development environment
+├── scripts/              # Database initialization scripts
 └── README.md
 ```
 

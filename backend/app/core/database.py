@@ -5,30 +5,16 @@ from app.core.config import settings
 
 # Create SQLAlchemy engine
 def create_engine_with_settings():
-    """Create database engine with appropriate settings for database type"""
+    """Create database engine with PostgreSQL settings"""
 
-    # Determine if we're using PostgreSQL or SQLite
-    is_postgresql = settings.DATABASE_URL.startswith("postgresql")
-
-    if is_postgresql:
-        # PostgreSQL specific settings
-        engine_settings = {
-            "pool_size": 20,  # Number of persistent connections
-            "max_overflow": 30,  # Additional connections beyond pool_size
-            "pool_pre_ping": True,  # Verify connections before use
-            "pool_recycle": 3600,  # Recycle connections after 1 hour
-            "echo": False,  # Set to True for SQL query logging in development
-        }
-    else:
-        # SQLite specific settings
-        engine_settings = {
-            "pool_pre_ping": True,
-            "echo": False,  # Set to True for SQL query logging in development
-            # SQLite specific optimizations
-            "connect_args": {
-                "check_same_thread": False,  # Allow access from multiple threads
-            } if not settings.DATABASE_URL.startswith("sqlite") else {},
-        }
+    # PostgreSQL specific settings
+    engine_settings = {
+        "pool_size": 20,  # Number of persistent connections
+        "max_overflow": 30,  # Additional connections beyond pool_size
+        "pool_pre_ping": True,  # Verify connections before use
+        "pool_recycle": 3600,  # Recycle connections after 1 hour
+        "echo": False,  # Set to True for SQL query logging in development
+    }
 
     return create_engine(settings.DATABASE_URL, **engine_settings)
 
