@@ -20,7 +20,6 @@ coverage.xml
 .hypothesis
 
 # Environment files
-.env
 .env.*
 
 # Virtual environments

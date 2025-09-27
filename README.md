@@ -51,6 +51,11 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# Copy environment file
+cp .env.example .env
+# Edit .env with your settings (OAuth credentials, API keys, etc.)
+
 python -m alembic upgrade head
 python scripts/seed_data.py  # Optional: seed with sample data
 
