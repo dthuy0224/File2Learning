@@ -5,6 +5,7 @@ import { useAuthStore } from './store/authStore'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import OAuthCallback from './pages/OAuthCallback'
 import DashboardPage from './pages/DashboardPage'
 import DocumentsPage from './pages/DocumentsPage'
 import FlashcardsPage from './pages/FlashcardsPage'
@@ -24,6 +25,11 @@ function App() {
         <Route path="/" element={token ? <Navigate to="/dashboard" /> : <LandingPage />} />
         <Route path="/login" element={token ? <Navigate to="/dashboard" /> : <LoginPage />} />
         <Route path="/register" element={token ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+
+        {/* OAuth callback routes */}
+        <Route path="/auth/google/callback" element={<OAuthCallback />} />
+        <Route path="/auth/microsoft/callback" element={<OAuthCallback />} />
+        <Route path="/auth/github/callback" element={<OAuthCallback />} />
         
         {/* Protected routes */}
         <Route

@@ -18,13 +18,11 @@ class FlashcardBase(BaseModel):
 class FlashcardCreate(FlashcardBase):
     document_id: Optional[int] = None
 
-
 # Properties to receive on update
 class FlashcardUpdate(FlashcardBase):
     front_text: Optional[str] = None
     back_text: Optional[str] = None
     difficulty_level: Optional[str] = None
-
 
 # Properties shared by models stored in DB
 class FlashcardInDBBase(FlashcardBase):
@@ -40,10 +38,8 @@ class FlashcardInDBBase(FlashcardBase):
     document_id: Optional[int]
     created_at: datetime
     updated_at: datetime
-
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 # Properties to return to client
 class Flashcard(FlashcardInDBBase):
@@ -57,5 +53,5 @@ class FlashcardInDB(FlashcardInDBBase):
 
 # For SRS review responses
 class FlashcardReview(BaseModel):
-    quality: int  # 0-5, where 5 is perfect recall
-    response_time: Optional[int] = None  # in seconds
+    quality: int  
+    response_time: Optional[int] = None  

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import SocialLoginButton from '../components/SocialLoginButton'
 import { authService, LoginRequest } from '../services/authService'
 import { useAuthStore } from '../store/authStore'
 import { BookOpen, Mail, Lock, Loader2 } from 'lucide-react'
@@ -63,6 +64,59 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Social Login Buttons */}
+            <div className="space-y-3 mb-6">
+              <SocialLoginButton
+                provider="google"
+                onSuccess={(token, user) => {
+                  login(token, user)
+                  toast.success('Welcome back!')
+                  navigate('/dashboard')
+                }}
+                onError={(error) => {
+                  toast.error(`Google login failed: ${error}`)
+                }}
+                disabled={loginMutation.isPending}
+              />
+
+              <SocialLoginButton
+                provider="microsoft"
+                onSuccess={(token, user) => {
+                  login(token, user)
+                  toast.success('Welcome back!')
+                  navigate('/dashboard')
+                }}
+                onError={(error) => {
+                  toast.error(`Microsoft login failed: ${error}`)
+                }}
+                disabled={loginMutation.isPending}
+              />
+
+              <SocialLoginButton
+                provider="github"
+                onSuccess={(token, user) => {
+                  login(token, user)
+                  toast.success('Welcome back!')
+                  navigate('/dashboard')
+                }}
+                onError={(error) => {
+                  toast.error(`GitHub login failed: ${error}`)
+                }}
+                disabled={loginMutation.isPending}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Email/Password Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email</label>
@@ -72,7 +126,7 @@ export default function LoginPage() {
                     type="email"
                     placeholder="Enter your email"
                     className="pl-10"
-                    {...register('username', { 
+                    {...register('username', {
                       required: 'Email is required',
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -94,7 +148,7 @@ export default function LoginPage() {
                     type="password"
                     placeholder="Enter your password"
                     className="pl-10"
-                    {...register('password', { 
+                    {...register('password', {
                       required: 'Password is required',
                       minLength: {
                         value: 6,
@@ -108,9 +162,9 @@ export default function LoginPage() {
                 )}
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? (

@@ -25,7 +25,7 @@ class QuizQuestion(QuizQuestionBase):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Quiz schemas
@@ -58,7 +58,7 @@ class Quiz(QuizBase):
     questions: List[QuizQuestion] = []
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Quiz Attempt schemas
@@ -92,4 +92,4 @@ class QuizAttempt(BaseModel):
     completed_at: Optional[datetime]
     
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database seeding script for AI Learning Material Generator
+Database seeding script for File2Learning
 
 This script creates sample data for development and testing purposes.
 """
@@ -249,7 +249,6 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
     db.add(quiz_attempt)
     
     db.commit()
-
 
 def seed_database():
     """Main seeding function"""

@@ -2,7 +2,6 @@ from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
-
 # Shared properties
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
@@ -14,6 +13,12 @@ class UserBase(BaseModel):
     difficulty_preference: Optional[str] = 'medium'
     daily_study_time: Optional[int] = 30
 
+    # OAuth fields
+    oauth_provider: Optional[str] = None
+    oauth_id: Optional[str] = None
+    oauth_email: Optional[str] = None
+    oauth_avatar: Optional[str] = None
+    is_oauth_account: bool = False
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
@@ -22,10 +27,22 @@ class UserCreate(UserBase):
     password: str
     full_name: Optional[str] = None
 
+    # OAuth fields (optional for regular registration)
+    oauth_provider: Optional[str] = None
+    oauth_id: Optional[str] = None
+    oauth_email: Optional[str] = None
+    oauth_avatar: Optional[str] = None
+    is_oauth_account: bool = False
+
 
 # Properties to receive via API on update
 class UserUpdate(UserBase):
     password: Optional[str] = None
+    oauth_provider: Optional[str] = None
+    oauth_id: Optional[str] = None
+    oauth_email: Optional[str] = None
+    oauth_avatar: Optional[str] = None
+    is_oauth_account: Optional[bool] = None
 
 
 # Properties shared by models stored in DB
@@ -36,7 +53,7 @@ class UserInDBBase(UserBase):
     last_login: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Properties to return to client

@@ -15,16 +15,31 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_username(self, db: Session, *, username: str) -> Optional[User]:
         return db.query(User).filter(User.username == username).first()
 
+    def get_by_oauth_provider(self, db: Session, *, provider: str, oauth_id: str) -> Optional[User]:
+        return db.query(User).filter(
+            User.oauth_provider == provider,
+            User.oauth_id == oauth_id
+        ).first()
+
     def create(self, db: Session, *, obj_in: UserCreate) -> User:
+        # Set password to empty string for OAuth users
+        password = obj_in.password if not obj_in.is_oauth_account else ""
+
         db_obj = User(
             email=obj_in.email,
             username=obj_in.username,
-            hashed_password=get_password_hash(obj_in.password),
+            hashed_password=get_password_hash(password) if password else "",
             full_name=obj_in.full_name,
             is_superuser=obj_in.is_superuser,
             learning_goals=obj_in.learning_goals,
             difficulty_preference=obj_in.difficulty_preference,
             daily_study_time=obj_in.daily_study_time,
+            # OAuth fields
+            oauth_provider=obj_in.oauth_provider,
+            oauth_id=obj_in.oauth_id,
+            oauth_email=obj_in.oauth_email,
+            oauth_avatar=obj_in.oauth_avatar,
+            is_oauth_account=obj_in.is_oauth_account,
         )
         db.add(db_obj)
         db.commit()
@@ -48,6 +63,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         user = self.get_by_email(db, email=email)
         if not user:
             return None
+
+        # For OAuth users, skip password verification
+        if user.is_oauth_account:
+            return user
+
+        # For regular users, verify password
         if not verify_password(password, user.hashed_password):
             return None
         return user

@@ -39,13 +39,11 @@ class DocumentInDBBase(DocumentBase):
     processed_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 # Properties to return to client
 class Document(DocumentInDBBase):
     pass
-
 
 # Properties stored in DB
 class DocumentInDB(DocumentInDBBase):
