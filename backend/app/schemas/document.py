@@ -14,7 +14,12 @@ class DocumentBase(BaseModel):
 # Properties to receive on creation
 class DocumentCreate(DocumentBase):
     filename: str
+    original_filename: str
+    file_path: str
+    file_size: int
     document_type: str
+    word_count: Optional[int] = 0
+    processing_status: str = 'pending'
     
 
 # Properties to receive on update
@@ -34,6 +39,12 @@ class DocumentInDBBase(DocumentBase):
     summary: Optional[str]
     word_count: int
     owner_id: int
+    processing_status: str
+    processing_error: Optional[str]
+    content_quality: Optional[str]
+    quality_score: Optional[int]
+    language_detected: Optional[str]
+    encoding_issues: Optional[int]
     created_at: datetime
     updated_at: datetime
     processed_at: Optional[datetime]

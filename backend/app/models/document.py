@@ -25,10 +25,20 @@ class Document(Base):
     # Foreign key
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
+    # Processing status
+    processing_status = Column(String, default='pending')  # 'pending', 'processing', 'completed', 'failed'
+    processing_error = Column(Text, nullable=True)
+
+    # Content quality metrics
+    content_quality = Column(String, nullable=True)  # 'excellent', 'good', 'fair', 'poor', 'empty', 'invalid'
+    quality_score = Column(Integer, nullable=True)   # 0-100 score
+    language_detected = Column(String, nullable=True)  # detected language
+    encoding_issues = Column(Integer, default=0)     # number of encoding issues found
+
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    processed_at = Column(DateTime, nullable=True)  # when AI processing completed
+    processed_at = Column(DateTime, nullable=True)  # when processing completed
     
     # Relationships
     owner = relationship("User", back_populates="documents")
