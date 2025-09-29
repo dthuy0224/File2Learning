@@ -78,7 +78,7 @@ async def upload_document(
     document_in = DocumentCreate(
         filename=sanitized_filename,
         original_filename=file.filename,
-        file_path=str(file_path),
+        file_path=str(file_path.resolve()),
         file_size=file_size,
         document_type=file_extension[1:],  # Remove the dot
         title=file.filename.split('.')[0],  # Use filename without extension as title
@@ -93,7 +93,7 @@ async def upload_document(
         # Trigger background processing
         process_document_task.delay(
             document_id=document_obj.id,
-            file_path=str(file_path),
+            file_path=str(file_path.resolve()),
             original_filename=file.filename
         )
 

@@ -27,6 +27,9 @@ export interface Document {
   quality_score?: number
   created_at: string
   processed_at?: string
+  content?: string
+  difficulty_level?: string
+  language_detected?: string
 }
 
 export interface QuizResponse {

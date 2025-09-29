@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Upload, FileText, Calendar, MoreHorizontal, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { Upload, FileText, Calendar, Loader2, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import AIService, { Document } from '../services/aiService'
 import ProgressIndicator from '../components/ProgressIndicator'
-import { useDocumentStatus } from '../hooks/useDocumentStatus'
 
 export default function DocumentsPage() {
   const navigate = useNavigate()

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { ArrowLeft, FileText, Calendar, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { ArrowLeft, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import AIService, { Document } from '../services/aiService'
 
