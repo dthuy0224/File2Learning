@@ -27,6 +27,15 @@ class DocumentUpdate(DocumentBase):
     title: Optional[str] = None
     summary: Optional[str] = None
     difficulty_level: Optional[str] = None
+    content: Optional[str] = None
+    word_count: Optional[int] = None
+    processing_status: Optional[str] = None
+    processed_at: Optional[datetime] = None
+    processing_error: Optional[str] = None
+    content_quality: Optional[str] = None
+    quality_score: Optional[int] = None
+    language_detected: Optional[str] = None
+    encoding_issues: Optional[int] = None
 
 
 # Properties shared by models stored in DB

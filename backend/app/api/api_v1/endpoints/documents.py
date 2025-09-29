@@ -198,11 +198,23 @@ def delete_document(
 
     # Delete physical file if exists
     if document_obj.file_path:
-        file_path = Path(document_obj.file_path)
-        if file_path.exists():
-            file_path.unlink()
+        try:
+            # Build absolute path assuming project root is /app in container
+            project_root = Path("/app")
+            full_file_path = project_root / document_obj.file_path
 
-    # Delete document record
+            if full_file_path.exists():
+                full_file_path.unlink()
+                print(f"Successfully deleted file: {full_file_path}")
+            else:
+                print(f"File not found for deletion: {full_file_path}")
+
+        except Exception as e:
+            # Log error but don't crash the entire request
+            # Database record deletion is more important
+            print(f"Error deleting physical file: {str(e)}")
+
+    # Delete document record from database
     document.remove(db=db, id=document_id)
     return {"message": "Document deleted successfully"}
 
