@@ -10,6 +10,9 @@ import DashboardPage from './pages/DashboardPage'
 import DocumentsPage from './pages/DocumentsPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import QuizzesPage from './pages/QuizzesPage'
+import QuizGenerationPage from './pages/QuizGenerationPage'
+import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
+import DocumentDetailPage from './pages/DocumentDetailPage'
 
 // Components
 import Layout from './components/Layout'
@@ -53,6 +56,16 @@ function App() {
           }
         />
         <Route
+          path="/documents/:documentId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DocumentDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/flashcards"
           element={
             <ProtectedRoute>
@@ -68,6 +81,28 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <QuizzesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* AI Generation Routes */}
+        <Route
+          path="/documents/:documentId/quiz"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizGenerationPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/documents/:documentId/flashcards"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FlashcardGenerationPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -21,6 +21,9 @@ def process_document_task(self, document_id: int, file_path: str, original_filen
     """
     logger.info(f"Starting document processing for document_id: {document_id}")
 
+    # Initialize metadata dictionary
+    metadata = {}
+
     try:
         # Get file path object
         file_path_obj = Path(file_path)

@@ -23,16 +23,25 @@ export default function LoginPage() {
     mutationFn: authService.login,
     onSuccess: async (tokenData) => {
       try {
-        // Get user data after successful login
-        const userData = await authService.fetchUser()
-        login(tokenData.access_token, userData)
+        // Set token first (user data will be fetched later)
+        login(tokenData.access_token, null as any)
+
+        // Wait a bit for token to be persisted, then fetch user data
+        setTimeout(async () => {
+          try {
+            const userData = await authService.fetchUser()
+            login(tokenData.access_token, userData)
+          } catch (fetchError: any) {
+            console.warn('Could not fetch user data:', fetchError)
+            // Continue with login even if user data fetch fails
+          }
+        }, 100)
+
         toast.success('Welcome back!')
         navigate('/dashboard')
       } catch (error: any) {
-        console.error('Error after login:', error)
-        toast.error(error.response?.data?.detail || 'Failed to get user data')
-        // Still login but without user data
-        login(tokenData.access_token, null)
+        console.error('Login error:', error)
+        toast.error(error.response?.data?.detail || 'Login failed')
       }
     },
     onError: (error: any) => {
