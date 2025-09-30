@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { progressService, UserStats, ActivityHeatmapPoint, PerformanceHistoryPoint, SkillBreakdownPoint, RecentActivityItem, ProgressResponse } from '@/services/progressService'
+import { progressService } from '@/services/progressService'
 
 // Custom hooks for progress data using React Query
 

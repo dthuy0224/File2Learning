@@ -1,62 +1,39 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
-import FlashcardService, { Flashcard } from '../services/flashcardService'
+import FlashcardService from '../services/flashcardService'
+import { useFlashcards } from '../hooks/useFlashcards'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([])
-  const [dueFlashcards, setDueFlashcards] = useState<Flashcard[]>([])
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [stats, setStats] = useState({
+
+  // Use React Query hooks instead of local state and useEffect
+  const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
+
+  // Calculate stats from flashcards using React Query data
+  const stats = flashcards.length > 0 ? FlashcardService.getFlashcardStatsFromList(flashcards) : {
     total_cards: 0,
     due_today: 0,
     due_this_week: 0,
     mastered: 0,
     learning: 0,
     new: 0
-  })
-
-  useEffect(() => {
-    loadFlashcards()
-  }, [])
-
-  const loadFlashcards = async () => {
-    try {
-      setLoading(true)
-      const [allCards, dueCards] = await Promise.all([
-        FlashcardService.getFlashcards(),
-        FlashcardService.getDueFlashcards()
-      ])
-
-      setFlashcards(allCards)
-      setDueFlashcards(dueCards)
-
-      // Calculate stats from flashcards
-      const calculatedStats = FlashcardService.getFlashcardStatsFromList(allCards)
-      setStats(calculatedStats)
-    } catch (error) {
-      console.error('Error loading flashcards:', error)
-      toast.error('Failed to load flashcards')
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleCreateFlashcard = async () => {
     try {
       setCreating(true)
       // Example flashcard creation - in real app this would come from a form
-      const newFlashcard = await FlashcardService.createFlashcard({
+      await FlashcardService.createFlashcard({
         front_text: 'Example Word',
         back_text: 'Definition of example word',
         difficulty_level: 'medium'
       })
 
-      setFlashcards(prev => [newFlashcard, ...prev])
       toast.success('Flashcard created successfully')
+      // React Query will automatically refetch the flashcards list
     } catch (error) {
       console.error('Error creating flashcard:', error)
       toast.error('Failed to create flashcard')
@@ -74,7 +51,7 @@ export default function FlashcardsPage() {
       })
 
       toast.success('Flashcard reviewed')
-      loadFlashcards() // Reload to get updated stats
+      // React Query will automatically refetch the flashcards and due cards
     } catch (error) {
       console.error('Error reviewing flashcard:', error)
       toast.error('Failed to review flashcard')
@@ -86,8 +63,8 @@ export default function FlashcardsPage() {
 
     try {
       await FlashcardService.deleteFlashcard(flashcardId)
-      setFlashcards(prev => prev.filter(card => card.id !== flashcardId))
       toast.success('Flashcard deleted')
+      // React Query will automatically refetch the flashcards list
     } catch (error) {
       console.error('Error deleting flashcard:', error)
       toast.error('Failed to delete flashcard')
@@ -98,6 +75,19 @@ export default function FlashcardsPage() {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading flashcards</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
       </div>
     )
   }

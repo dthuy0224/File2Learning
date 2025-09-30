@@ -1,56 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Brain, Play, Plus, Clock, Loader2, Trash2, Edit, BarChart3 } from 'lucide-react'
-import QuizService, { Quiz, QuizAttempt } from '../services/quizService'
+import QuizService from '../services/quizService'
+import { useQuizzes, useQuizAttempts } from '../hooks/useQuizzes'
 import toast from 'react-hot-toast'
 
 export default function QuizzesPage() {
-  const [quizzes, setQuizzes] = useState<Quiz[]>([])
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [attempts, setAttempts] = useState<{ [quizId: number]: QuizAttempt[] }>({})
 
-  useEffect(() => {
-    loadQuizzes()
-  }, [])
-
-  const loadQuizzes = async () => {
-    try {
-      setLoading(true)
-      const quizList = await QuizService.getQuizzes()
-      setQuizzes(quizList)
-
-      // Load attempts for each quiz
-      const attemptsPromises = quizList.map(async (quiz) => {
-        try {
-          const quizAttempts = await QuizService.getQuizAttempts(quiz.id)
-          return { quizId: quiz.id, attempts: quizAttempts }
-        } catch (error) {
-          console.error(`Error loading attempts for quiz ${quiz.id}:`, error)
-          return { quizId: quiz.id, attempts: [] }
-        }
-      })
-
-      const attemptsResults = await Promise.all(attemptsPromises)
-      const attemptsMap: { [quizId: number]: QuizAttempt[] } = {}
-      attemptsResults.forEach(result => {
-        attemptsMap[result.quizId] = result.attempts
-      })
-      setAttempts(attemptsMap)
-    } catch (error) {
-      console.error('Error loading quizzes:', error)
-      toast.error('Failed to load quizzes')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Use React Query hooks instead of local state and useEffect
+  const { data: quizzes = [], isLoading: loading, error } = useQuizzes()
 
   const handleCreateQuiz = async () => {
     try {
       setCreating(true)
       // Example quiz creation - in real app this would come from a form
-      const newQuiz = await QuizService.createQuiz({
+      await QuizService.createQuiz({
         title: 'New Vocabulary Quiz',
         description: 'A quiz about vocabulary words',
         quiz_type: 'vocabulary',
@@ -58,8 +24,8 @@ export default function QuizzesPage() {
         questions: []
       })
 
-      setQuizzes(prev => [newQuiz, ...prev])
       toast.success('Quiz created successfully')
+      // React Query will automatically refetch the quizzes list
     } catch (error) {
       console.error('Error creating quiz:', error)
       toast.error('Failed to create quiz')
@@ -70,7 +36,7 @@ export default function QuizzesPage() {
 
   const handleStartQuiz = async (quizId: number) => {
     try {
-      const result = await QuizService.startQuizAttempt(quizId)
+      await QuizService.startQuizAttempt(quizId)
       toast.success('Quiz started!')
       // Navigate to quiz taking page (would need to implement this route)
       window.location.href = `/quizzes/${quizId}/take`
@@ -85,8 +51,8 @@ export default function QuizzesPage() {
 
     try {
       await QuizService.deleteQuiz(quizId)
-      setQuizzes(prev => prev.filter(quiz => quiz.id !== quizId))
       toast.success('Quiz deleted')
+      // React Query will automatically refetch the quizzes list
     } catch (error) {
       console.error('Error deleting quiz:', error)
       toast.error('Failed to delete quiz')
@@ -94,7 +60,8 @@ export default function QuizzesPage() {
   }
 
   const getQuizStats = (quizId: number) => {
-    const quizAttempts = attempts[quizId] || []
+    // Use React Query for quiz attempts instead of local state
+    const { data: quizAttempts = [] } = useQuizAttempts(quizId)
     return QuizService.getQuizStatsFromAttempts(quizAttempts)
   }
 
@@ -102,6 +69,19 @@ export default function QuizzesPage() {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading quizzes</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
       </div>
     )
   }
