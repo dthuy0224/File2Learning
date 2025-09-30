@@ -7,12 +7,14 @@ import FlashcardService, { Flashcard } from '../services/flashcardService'
 import { useFlashcards } from '../hooks/useFlashcards'
 import AddFlashcardModal from '../components/AddFlashcardModal'
 import PracticeModal from '../components/PracticeModal'
+import FlashcardViewModal from '../components/FlashcardViewModal'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
   const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [practicingCard, setPracticingCard] = useState<Flashcard | null>(null)
+  const [viewingCard, setViewingCard] = useState<Flashcard | null>(null)
 
   // Use React Query hooks instead of local state and useEffect
   const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
@@ -32,21 +34,6 @@ export default function FlashcardsPage() {
     setIsModalOpen(true)
   }
 
-  const handleReviewFlashcard = async (flashcardId: number) => {
-    try {
-      // Example review - in real app this would come from user interaction
-      await FlashcardService.reviewFlashcard(flashcardId, {
-        quality: 4, // 0-5 rating
-        response_time: 2500 // 2.5 seconds
-      })
-
-      toast.success('Flashcard reviewed')
-      // React Query will automatically refetch the flashcards and due cards
-    } catch (error) {
-      console.error('Error reviewing flashcard:', error)
-      toast.error('Failed to review flashcard')
-    }
-  }
 
   const handleDeleteFlashcard = async (flashcardId: number) => {
     if (!confirm('Are you sure you want to delete this flashcard?')) return
@@ -169,7 +156,8 @@ export default function FlashcardsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleReviewFlashcard(card.id)}
+                    onClick={() => setViewingCard(card)}
+                    title="Quick view"
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
@@ -197,7 +185,7 @@ export default function FlashcardsPage() {
                 </div>
               )}
               <div className="mt-4 flex space-x-2">
-                <Button size="sm" variant="outline" onClick={() => handleReviewFlashcard(card.id)}>
+                <Button size="sm" variant="outline" onClick={() => setViewingCard(card)}>
                   Review
                 </Button>
                 <Button size="sm" onClick={() => setPracticingCard(card)}>
@@ -235,6 +223,12 @@ export default function FlashcardsPage() {
       <AddFlashcardModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Flashcard View Modal */}
+      <FlashcardViewModal
+        card={viewingCard}
+        onClose={() => setViewingCard(null)}
       />
     </div>
   )
