@@ -131,10 +131,9 @@ def delete_flashcard(
     """
     Delete a flashcard.
     """
-    flashcard_obj = flashcard.get(db=db, id=flashcard_id)
+    flashcard_obj = flashcard.remove(db=db, id=flashcard_id)
     if not flashcard_obj:
         raise HTTPException(status_code=404, detail="Flashcard not found")
     if flashcard_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
-    flashcard.remove(db=db, id=flashcard_id)
     return {"message": "Flashcard deleted successfully"}

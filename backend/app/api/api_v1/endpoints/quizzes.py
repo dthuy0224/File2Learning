@@ -247,10 +247,9 @@ def delete_quiz(
     """
     Delete a quiz.
     """
-    quiz_obj = quiz.get(db=db, id=quiz_id)
+    quiz_obj = quiz.remove(db=db, id=quiz_id)
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
     if quiz_obj.created_by != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
-    quiz.remove(db=db, id=quiz_id)
     return {"message": "Quiz deleted successfully"}
