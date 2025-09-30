@@ -1,4 +1,5 @@
 from typing import Any, List
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -113,11 +114,39 @@ def review_flashcard(
         raise HTTPException(status_code=404, detail="Flashcard not found")
     if flashcard_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
-    
-    # TODO: Implement SRS algorithm (SM-2 or similar)
-    # This will update ease_factor, interval, repetitions, next_review_date
-    # based on the quality score (0-5)
-    
+
+    # --- Bắt đầu logic SRS (SM-2) ---
+    quality = review.quality # Chất lượng người dùng đánh giá (từ 0-5)
+
+    if quality >= 3: # Nếu trả lời đúng (dễ, vừa, khó)
+        if flashcard_obj.repetitions == 0:
+            interval = 1
+        elif flashcard_obj.repetitions == 1:
+            interval = 6
+        else:
+            interval = round(flashcard_obj.interval * flashcard_obj.ease_factor)
+
+        flashcard_obj.repetitions += 1
+        flashcard_obj.ease_factor = flashcard_obj.ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    else: # Nếu trả lời sai
+        flashcard_obj.repetitions = 0 # Reset số lần lặp lại
+        interval = 1 # Hẹn gặp lại vào ngày mai
+
+    # Đảm bảo ease_factor không quá thấp
+    if flashcard_obj.ease_factor < 1.3:
+        flashcard_obj.ease_factor = 1.3
+
+    # Cập nhật ngày ôn tập tiếp theo
+    flashcard_obj.next_review_date = datetime.utcnow() + timedelta(days=interval)
+    flashcard_obj.interval = interval
+    flashcard_obj.last_review_quality = quality
+    flashcard_obj.times_reviewed += 1
+    if quality >= 3:
+        flashcard_obj.times_correct += 1
+
+    db.commit()
+    db.refresh(flashcard_obj)
+
     return flashcard_obj
 
 

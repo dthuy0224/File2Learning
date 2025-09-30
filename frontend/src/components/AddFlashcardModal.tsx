@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,13 +9,27 @@ import toast from 'react-hot-toast';
 interface AddFlashcardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: {
+    front_text: string;
+    back_text: string;
+    example_sentence?: string;
+  } | null;
 }
 
-export default function AddFlashcardModal({ isOpen, onClose }: AddFlashcardModalProps) {
+export default function AddFlashcardModal({ isOpen, onClose, initialData }: AddFlashcardModalProps) {
   const [frontText, setFrontText] = useState('');
   const [backText, setBackText] = useState('');
   const [example, setExample] = useState('');
   const queryClient = useQueryClient();
+
+  // Set initial data when modal opens
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setFrontText(initialData.front_text);
+      setBackText(initialData.back_text);
+      setExample(initialData.example_sentence || '');
+    }
+  }, [initialData, isOpen]);
 
   const createMutation = useMutation({
     mutationFn: FlashcardService.createFlashcard,

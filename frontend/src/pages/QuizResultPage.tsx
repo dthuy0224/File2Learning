@@ -7,15 +7,16 @@ import { Progress } from '../components/ui/progress'
 import {
   CheckCircle,
   XCircle,
-  Clock,
   Trophy,
   RotateCcw,
   ArrowLeft,
   BookOpen,
-  Target
+  Target,
+  Plus
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import quizService from '../services/quizService'
+import AddFlashcardModal from '../components/AddFlashcardModal'
 
 interface QuizAttemptDetail {
   id: number
@@ -50,6 +51,12 @@ export default function QuizResultPage() {
 
   const [attempt, setAttempt] = useState<QuizAttemptDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false)
+  const [flashcardData, setFlashcardData] = useState<{
+    front_text: string;
+    back_text: string;
+    example_sentence?: string;
+  } | null>(null)
 
   useEffect(() => {
     if (attemptId) {
@@ -78,6 +85,17 @@ export default function QuizResultPage() {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+
+  const handleCreateFlashcard = (answer: any) => {
+    // Extract key terms from the question for the front text
+    const questionWords = answer.question_text.split(' ').slice(0, 3).join(' ')
+    setFlashcardData({
+      front_text: questionWords,
+      back_text: answer.correct_answer,
+      example_sentence: `From quiz: ${answer.question_text}`
+    })
+    setIsFlashcardModalOpen(true)
   }
 
   const formatDate = (dateString: string) => {
@@ -291,6 +309,21 @@ export default function QuizResultPage() {
                   <p className="text-gray-700">{answer.explanation}</p>
                 </div>
               )}
+
+              {/* Create Flashcard Button for incorrect answers */}
+              {!answer.is_correct && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateFlashcard(answer)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Flashcard for this question</span>
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </CardContent>
@@ -309,6 +342,16 @@ export default function QuizResultPage() {
           Back to Quizzes
         </Button>
       </div>
+
+      {/* Add Flashcard Modal */}
+      <AddFlashcardModal
+        isOpen={isFlashcardModalOpen}
+        onClose={() => {
+          setIsFlashcardModalOpen(false)
+          setFlashcardData(null)
+        }}
+        initialData={flashcardData}
+      />
     </div>
   )
 }
