@@ -4,8 +4,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 // import { Badge } from '@/components/ui/badge' // TODO: Fix Badge import issue
 import { Flame, BrainCircuit, Target, Clock, TrendingUp, Calendar, Activity, Award, Loader2 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
+import CalendarHeatmap from 'react-calendar-heatmap'
+import 'react-calendar-heatmap/dist/styles.css'
 import {
   useUserStats,
+  useActivityHeatmap,
   usePerformanceHistory,
   useSkillBreakdown,
   useRecentActivities
@@ -17,9 +20,20 @@ const ProgressPage = () => {
   // Convert time range to days for API
   const rangeDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365
 
+  // Heatmap styles
+  const heatmapStyles = `
+    .react-calendar-heatmap .color-empty { fill: #f8fafc; stroke: #e2e8f0; }
+    .react-calendar-heatmap .color-scale-1 { fill: #dcfce7; stroke: #16a34a; }
+    .react-calendar-heatmap .color-scale-2 { fill: #bbf7d0; stroke: #16a34a; }
+    .react-calendar-heatmap .color-scale-3 { fill: #4ade80; stroke: #15803d; }
+    .react-calendar-heatmap .color-scale-4 { fill: #16a34a; stroke: #15803d; }
+    .react-calendar-heatmap rect { rx: 2; }
+    .react-calendar-heatmap .tooltip { position: relative; }
+  `
+
   // Fetch data from APIs
   const { data: stats, isLoading: statsLoading } = useUserStats(rangeDays)
-  // const { data: activityHeatmap, isLoading: heatmapLoading } = useActivityHeatmap(rangeDays) // TODO: Implement activity heatmap
+  const { data: activityHeatmap, isLoading: heatmapLoading } = useActivityHeatmap(rangeDays)
   const { data: performanceHistory, isLoading: performanceLoading } = usePerformanceHistory(rangeDays)
   const { data: skillBreakdown, isLoading: skillLoading } = useSkillBreakdown(rangeDays)
   const { data: recentActivities, isLoading: activitiesLoading } = useRecentActivities(10)
@@ -31,12 +45,33 @@ const ProgressPage = () => {
     color: item.level === 'Dễ' ? '#22c55e' : item.level === 'Trung bình' ? '#f59e0b' : '#ef4444'
   })) || []
 
+  // Transform heatmap data for react-calendar-heatmap
+  const heatmapData = activityHeatmap?.map(item => ({
+    date: item.date,
+    count: item.count
+  })) || []
+
+  // Get date range for heatmap (90 days back from today)
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(today.getDate() - 90)
+
+  // Custom color function for heatmap
+  const getHeatmapColor = (value: any) => {
+    if (!value || !value.count || value.count === 0) return 'color-empty'
+    if (value.count <= 2) return 'color-scale-1'
+    if (value.count <= 4) return 'color-scale-2'
+    if (value.count <= 6) return 'color-scale-3'
+    return 'color-scale-4'
+  }
+
   const handleTimeRangeChange = (value: string) => {
     setTimeRange(value)
   }
 
   return (
     <div className="container mx-auto px-6 py-8 space-y-8">
+      <style>{heatmapStyles}</style>
       {/* Header Section */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="space-y-2">
@@ -168,13 +203,56 @@ const ProgressPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-48 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Activity heatmap chart</p>
-                <p className="text-sm">Coming soon</p>
+            {heatmapLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Legend */}
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Less</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 rounded-sm bg-slate-100 border"></div>
+                    <div className="w-3 h-3 rounded-sm bg-green-200"></div>
+                    <div className="w-3 h-3 rounded-sm bg-green-400"></div>
+                    <div className="w-3 h-3 rounded-sm bg-green-600"></div>
+                    <div className="w-3 h-3 rounded-sm bg-green-800"></div>
+                  </div>
+                  <span>More</span>
+                </div>
+
+                {/* Heatmap */}
+                <div className="overflow-x-auto">
+                  <CalendarHeatmap
+                    startDate={startDate}
+                    endDate={today}
+                    values={heatmapData}
+                    classForValue={getHeatmapColor}
+                    showWeekdayLabels={true}
+                    transformDayElement={(element: any, value: any, index: number) => (
+                      <div
+                        key={index}
+                        className={`
+                          ${value && value.count > 0 ? 'cursor-pointer hover:scale-110 transition-transform' : ''}
+                          tooltip
+                        `}
+                        title={value ? `${value.count} activities on ${value.date}` : 'No data'}
+                      >
+                        {element}
+                      </div>
+                    )}
+                  />
+                </div>
+
+                {/* Summary stats */}
+                {heatmapData.length > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    Total active days: {heatmapData.filter(d => d.count > 0).length} / {heatmapData.length}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -222,7 +300,7 @@ const ProgressPage = () => {
                 <div className="text-center">
                   <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No performance data</p>
-                  <p className="text-sm">Hoàn thành một vài bài quiz để xem biểu đồ</p>
+                  <p className="text-sm">Complete a few quizzes to see the chart</p>
                 </div>
               </div>
             )}
