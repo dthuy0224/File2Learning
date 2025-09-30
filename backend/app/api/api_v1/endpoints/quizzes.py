@@ -171,6 +171,9 @@ def submit_quiz_attempt(
     percentage = int((correct_answers / len(questions)) * 100) if questions else 0
 
     # Update the attempt record
+    from app.models.quiz import QuizAttempt 
+    from datetime import datetime            
+
     attempt_obj = db.query(QuizAttempt).filter(
         QuizAttempt.quiz_id == quiz_id,
         QuizAttempt.user_id == current_user.id,
@@ -209,6 +212,29 @@ def read_quiz_attempts(
         db=db, user_id=current_user.id, quiz_id=quiz_id
     )
     return attempts
+
+
+@router.get("/attempts/{attempt_id}", response_model=QuizAttempt)
+def read_quiz_attempt_by_id(
+    *,
+    db: Session = Depends(get_db),
+    attempt_id: int,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get a specific quiz attempt by its ID.
+    """
+    from app.models.quiz import QuizAttempt as QuizAttemptModel
+
+    attempt_obj = db.query(QuizAttemptModel).filter(QuizAttemptModel.id == attempt_id).first()
+
+    if not attempt_obj:
+        raise HTTPException(status_code=404, detail="Quiz attempt not found")
+
+    if attempt_obj.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    return attempt_obj
 
 
 @router.delete("/{quiz_id}")
