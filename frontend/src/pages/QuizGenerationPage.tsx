@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Loader2, ArrowLeft, FileText, Brain, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import AIService, { QuizQuestion, QuizQuestionExtended, QuizResponse } from '../services/aiService'
+import AIService, { QuizQuestionExtended, QuizResponse } from '../services/aiService'
 import QuizService from '../services/quizService'
 
 export default function QuizGenerationPage() {
@@ -52,20 +52,20 @@ export default function QuizGenerationPage() {
         numQuestions
       )
 
-      // Transform AI response to match our QuizQuestionExtended interface
+      
       const formattedQuiz: QuizQuestionExtended[] = response.quiz.map((q, index) => ({
-        // Base fields from AI
+        
         question: q.question,
         options: q.options,
         correct_answer: q.correct_answer,
         question_type: q.question_type,
-        // Extended fields for frontend use
+        
         id: index, // Temporary ID for frontend display
         question_text: q.question,
-        explanation: undefined, // AI doesn't provide explanations yet
+        explanation: undefined, 
         points: 1,
         order_index: index + 1,
-        quiz_id: 0, // Will be set when saved
+        quiz_id: 0, 
         created_at: new Date().toISOString()
       }))
 
@@ -100,14 +100,14 @@ export default function QuizGenerationPage() {
 
   const saveQuiz = async () => {
     if (quiz.length === 0) {
-      toast.error('No quiz to save')
-      return
+      toast.error('No quiz to save');
+      return;
     }
 
     try {
-      setSavingQuiz(true)
+      setSavingQuiz(true);
 
-      // Create quiz data for saving
+      
       const quizData = {
         title: `${document.title || document.original_filename} - Quiz`,
         description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
@@ -115,7 +115,7 @@ export default function QuizGenerationPage() {
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
         questions: quiz.map((q, index) => ({
-          question: q.question_text,
+          question: q.question_text, 
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
@@ -123,18 +123,32 @@ export default function QuizGenerationPage() {
           points: 1,
           order_index: index + 1
         }))
+      };
+
+      const savedQuizData = await QuizService.createQuizFromAI(quizData as any); 
+      setSavedQuiz(savedQuizData);
+      toast.success('Quiz saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving quiz:', error);
+
+      
+      const errorDetail = error.response?.data?.detail;
+      if (errorDetail) {
+        
+        if (Array.isArray(errorDetail)) {
+          const firstError = errorDetail[0];
+          toast.error(`Save failed: ${firstError.msg} (in ${firstError.loc.join(' > ')})`);
+        } else {
+          toast.error(`Save failed: ${errorDetail}`);
+        }
+      } else {
+        toast.error('Failed to save quiz. Please check console for details.');
       }
 
-      const savedQuizData = await AIService.saveQuiz(quizData)
-      setSavedQuiz(savedQuizData)
-      toast.success('Quiz saved successfully!')
-    } catch (error: any) {
-      console.error('Error saving quiz:', error)
-      toast.error(error.response?.data?.detail || 'Failed to save quiz')
     } finally {
-      setSavingQuiz(false)
+      setSavingQuiz(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -161,7 +175,7 @@ export default function QuizGenerationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={() => navigate('/documents')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -175,7 +189,7 @@ export default function QuizGenerationPage() {
         </div>
       </div>
 
-      {/* Document Info */}
+      
       <Card>
         <CardHeader>
           <div className="flex items-center space-x-3">
@@ -190,7 +204,7 @@ export default function QuizGenerationPage() {
         </CardHeader>
       </Card>
 
-      {/* Quiz Generation Settings */}
+                        
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
