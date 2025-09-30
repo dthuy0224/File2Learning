@@ -38,19 +38,23 @@ def get_quick_quiz(
     """
     Generate a quick, random quiz from the user's flashcards.
     """
-    user_flashcards = flashcard.get_by_user(db, user_id=current_user.id, limit=100)
+    user_flashcards = flashcard.get_by_user(db, user_id=current_user.id, limit=1000)
 
     if len(user_flashcards) < 4:
         raise HTTPException(status_code=400, detail="Not enough flashcards to generate a quiz. Please create at least 4 flashcards.")
 
-    # Lấy 10 flashcard ngẫu nhiên
-    selected_cards = random.sample(user_flashcards, min(10, len(user_flashcards)))
+    num_questions = min(10, len(user_flashcards))
+    selected_cards = random.sample(user_flashcards, num_questions)
 
     questions = []
     for i, card in enumerate(selected_cards):
-        # Tạo 3 đáp án sai ngẫu nhiên từ các thẻ khác
+        # Lấy 3 đáp án sai ngẫu nhiên từ các thẻ KHÁC với thẻ hiện tại
         other_cards = [c for c in user_flashcards if c.id != card.id]
-        wrong_answers = [c.back_text for c in random.sample(other_cards, 3)]
+
+        # Đảm bảo có đủ thẻ để tạo đáp án sai
+        num_wrong_answers = min(3, len(other_cards))
+        wrong_cards = random.sample(other_cards, num_wrong_answers)
+        wrong_answers = [c.back_text for c in wrong_cards]
 
         options = wrong_answers + [card.back_text]
         random.shuffle(options)
