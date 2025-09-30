@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
-import FlashcardService from '../services/flashcardService'
+import FlashcardService, { Flashcard } from '../services/flashcardService'
 import { useFlashcards } from '../hooks/useFlashcards'
 import AddFlashcardModal from '../components/AddFlashcardModal'
+import PracticeModal from '../components/PracticeModal'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
   const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [practicingCard, setPracticingCard] = useState<Flashcard | null>(null)
 
   // Use React Query hooks instead of local state and useEffect
   const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
@@ -198,7 +200,9 @@ export default function FlashcardsPage() {
                 <Button size="sm" variant="outline" onClick={() => handleReviewFlashcard(card.id)}>
                   Review
                 </Button>
-                <Button size="sm">Practice</Button>
+                <Button size="sm" onClick={() => setPracticingCard(card)}>
+                  Practice
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -219,6 +223,13 @@ export default function FlashcardsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Practice Modal */}
+      <PracticeModal
+        card={practicingCard}
+        allCards={flashcards}
+        onClose={() => setPracticingCard(null)}
+      />
 
       {/* Add Flashcard Modal */}
       <AddFlashcardModal

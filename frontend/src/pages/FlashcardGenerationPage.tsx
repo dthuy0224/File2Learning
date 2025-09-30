@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Loader2, ArrowLeft, FileText, BookOpen, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, BookOpen, AlertCircle, Save } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import AIService, { Flashcard, FlashcardResponse } from '../services/aiService'
+import FlashcardService from '../services/flashcardService'
 
 export default function FlashcardGenerationPage() {
   const { documentId } = useParams<{ documentId: string }>()
@@ -14,9 +15,8 @@ export default function FlashcardGenerationPage() {
   const [generating, setGenerating] = useState(false)
   const [document, setDocument] = useState<any>(null)
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
-  const [currentCardIndex, setCurrentCardIndex] = useState(0)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [masteredCards, setMasteredCards] = useState<Set<number>>(new Set())
+  const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
 
   // Flashcard generation settings
   const [numCards, setNumCards] = useState(10)
@@ -50,9 +50,7 @@ export default function FlashcardGenerationPage() {
       )
 
       setFlashcards(response.flashcards)
-      setCurrentCardIndex(0)
-      setShowAnswer(false)
-      setMasteredCards(new Set())
+      setSelectedCards(new Set()) // Reset selection when generating new cards
       toast.success(`Generated ${response.flashcards.length} flashcards!`)
     } catch (error: any) {
       console.error('Error generating flashcards:', error)
@@ -62,35 +60,37 @@ export default function FlashcardGenerationPage() {
     }
   }
 
-  const nextCard = () => {
-    if (currentCardIndex < flashcards.length - 1) {
-      setCurrentCardIndex(currentCardIndex + 1)
-      setShowAnswer(false)
+  const handleSelectCard = (index: number) => {
+    setSelectedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSaveSelectedCards = async () => {
+    setIsSaving(true);
+    const cardsToSave = Array.from(selectedCards).map(index => flashcards[index]);
+
+    try {
+      // Gọi API để lưu từng thẻ
+      await FlashcardService.createMultipleFlashcards(cardsToSave.map(card => ({
+          ...card,
+          document_id: parseInt(documentId!)
+      })));
+      toast.success(`${cardsToSave.length} flashcards saved successfully!`);
+      navigate('/flashcards'); // Điều hướng về trang danh sách flashcard
+    } catch (error) {
+      toast.error('Failed to save flashcards.');
+    } finally {
+      setIsSaving(false);
     }
-  }
+  };
 
-  const prevCard = () => {
-    if (currentCardIndex > 0) {
-      setCurrentCardIndex(currentCardIndex - 1)
-      setShowAnswer(false)
-    }
-  }
-
-  const toggleAnswer = () => {
-    setShowAnswer(!showAnswer)
-  }
-
-  const markAsMastered = () => {
-    setMasteredCards(prev => new Set([...prev, currentCardIndex]))
-    toast.success('Card marked as mastered!')
-  }
-
-  const resetProgress = () => {
-    setCurrentCardIndex(0)
-    setShowAnswer(false)
-    setMasteredCards(new Set())
-    toast.success('Progress reset!')
-  }
 
   if (loading) {
     return (
@@ -115,9 +115,6 @@ export default function FlashcardGenerationPage() {
     )
   }
 
-  const currentCard = flashcards[currentCardIndex]
-  const progress = flashcards.length > 0 ? ((currentCardIndex + 1) / flashcards.length) * 100 : 0
-  const masteredCount = masteredCards.size
 
   return (
     <div className="space-y-6">
@@ -136,10 +133,6 @@ export default function FlashcardGenerationPage() {
           </div>
         </div>
 
-        <Button variant="outline" onClick={resetProgress}>
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reset Progress
-        </Button>
       </div>
 
       {/* Document Info */}
@@ -207,90 +200,58 @@ export default function FlashcardGenerationPage() {
         </CardContent>
       </Card>
 
-      {/* Flashcard Study Interface */}
+      {/* AI Generated Flashcards Review and Save */}
       {flashcards.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Study Flashcards</CardTitle>
-                <CardDescription>
-                  Card {currentCardIndex + 1} of {flashcards.length} • {masteredCount} mastered
-                </CardDescription>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
-              </div>
-            </div>
+            <CardTitle>AI Generated Flashcards</CardTitle>
+            <CardDescription>
+              Review and select the flashcards you want to save to your collection.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            {currentCard && (
-              <div className="text-center">
-                {/* Flashcard */}
-                <div
-                  className="bg-white border-2 border-gray-200 rounded-lg p-8 mb-6 cursor-pointer transition-all duration-300 hover:shadow-lg"
-                  onClick={toggleAnswer}
-                >
-                  <div className="min-h-[200px] flex items-center justify-center">
-                    {showAnswer ? (
-                      <div>
-                        <p className="text-lg font-medium text-gray-900 mb-4">
-                          {currentCard.back_text}
-                        </p>
-                        {currentCard.example_sentence && (
-                          <p className="text-sm text-gray-600 italic">
-                            "{currentCard.example_sentence}"
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xl font-semibold text-gray-900">
-                        {currentCard.front_text}
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-4">
-                    Click to {showAnswer ? 'see question' : 'see answer'}
-                  </p>
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={prevCard}
-                    disabled={currentCardIndex === 0}
-                  >
-                    Previous
-                  </Button>
-
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={masteredCards.has(currentCardIndex) ? "default" : "outline"}
-                      onClick={markAsMastered}
-                      className="flex items-center space-x-2"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Mastered</span>
-                    </Button>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    onClick={nextCard}
-                    disabled={currentCardIndex === flashcards.length - 1}
-                  >
-                    Next
-                  </Button>
+          <CardContent className="space-y-4">
+            {flashcards.map((card, index) => (
+              <div key={index} className="flex items-start space-x-4 p-4 border rounded-md">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedCards.has(index)}
+                  onChange={() => handleSelectCard(index)}
+                />
+                <div className="flex-1">
+                  <p className="font-semibold">{card.front_text}</p>
+                  <p className="text-gray-600">{card.back_text}</p>
+                  {card.example_sentence && (
+                    <p className="text-sm italic text-gray-500 mt-1">
+                      "{card.example_sentence}"
+                    </p>
+                  )}
                 </div>
               </div>
-            )}
+            ))}
+
+            <div className="flex items-center justify-between pt-4 border-t">
+              <span className="text-sm text-gray-600">
+                {selectedCards.size} of {flashcards.length} cards selected
+              </span>
+              <Button
+                onClick={handleSaveSelectedCards}
+                disabled={isSaving || selectedCards.size === 0}
+                className="flex items-center space-x-2"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span>Save {selectedCards.size} Cards</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
