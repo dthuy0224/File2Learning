@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Loader2, ArrowLeft, FileText, Brain, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import AIService, { QuizQuestion, QuizResponse } from '../services/aiService'
+import AIService, { QuizQuestion, QuizQuestionExtended, QuizResponse } from '../services/aiService'
 import QuizService from '../services/quizService'
 
 export default function QuizGenerationPage() {
@@ -14,7 +14,7 @@ export default function QuizGenerationPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [document, setDocument] = useState<any>(null)
-  const [quiz, setQuiz] = useState<QuizQuestion[]>([])
+  const [quiz, setQuiz] = useState<QuizQuestionExtended[]>([])
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({})
   const [savedQuiz, setSavedQuiz] = useState<any>(null)
   const [savingQuiz, setSavingQuiz] = useState(false)
@@ -52,13 +52,16 @@ export default function QuizGenerationPage() {
         numQuestions
       )
 
-      // Transform AI response to match our QuizQuestion interface
-      const formattedQuiz = response.quiz.map((q, index) => ({
+      // Transform AI response to match our QuizQuestionExtended interface
+      const formattedQuiz: QuizQuestionExtended[] = response.quiz.map((q, index) => ({
+        // Base fields from AI
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        question_type: q.question_type,
+        // Extended fields for frontend use
         id: index, // Temporary ID for frontend display
         question_text: q.question,
-        question_type: q.question_type,
-        correct_answer: q.correct_answer,
-        options: q.options,
         explanation: undefined, // AI doesn't provide explanations yet
         points: 1,
         order_index: index + 1,
@@ -112,12 +115,13 @@ export default function QuizGenerationPage() {
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
         questions: quiz.map((q, index) => ({
-          question: q.question,
+          question: q.question_text,
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
           explanation: q.explanation,
-          points: 1
+          points: 1,
+          order_index: index + 1
         }))
       }
 

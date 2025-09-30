@@ -8,6 +8,17 @@ export interface QuizQuestion {
   question_type: 'multiple_choice' | 'fill_blank'
 }
 
+// Extended interface for frontend use with additional fields
+export interface QuizQuestionExtended extends QuizQuestion {
+  id: number
+  question_text: string
+  explanation?: string
+  points: number
+  order_index: number
+  quiz_id: number
+  created_at: string
+}
+
 export interface Flashcard {
   front_text: string
   back_text: string
