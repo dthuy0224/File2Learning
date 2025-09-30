@@ -13,6 +13,7 @@ import QuizzesPage from './pages/QuizzesPage'
 import QuizGenerationPage from './pages/QuizGenerationPage'
 import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
+import ProgressPage from './pages/ProgressPage'
 
 // Components
 import Layout from './components/Layout'
@@ -81,6 +82,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <QuizzesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/progress"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProgressPage />
               </Layout>
             </ProtectedRoute>
           }
