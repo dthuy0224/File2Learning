@@ -52,6 +52,11 @@ export default function QuizResultPage() {
   const [attempt, setAttempt] = useState<QuizAttemptDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false)
+  const [previewFlashcard, setPreviewFlashcard] = useState<{
+    front_text: string;
+    back_text: string;
+    example_sentence?: string;
+  } | null>(null)
   const [flashcardData, setFlashcardData] = useState<{
     front_text: string;
     back_text: string;
@@ -88,14 +93,59 @@ export default function QuizResultPage() {
   }
 
   const handleCreateFlashcard = (answer: any) => {
-    // Extract key terms from the question for the front text
-    const questionWords = answer.question_text.split(' ').slice(0, 3).join(' ')
-    setFlashcardData({
-      front_text: questionWords,
-      back_text: answer.correct_answer,
-      example_sentence: `From quiz: ${answer.question_text}`
-    })
-    setIsFlashcardModalOpen(true)
+    try {
+      // Extract key terms from the question for the front text
+      let frontText = answer.question_text || 'Unknown term'
+
+      // Handle different question patterns
+      if (answer.question_text.includes("definition of")) {
+        // Pattern: "What is the definition of 'resilient'?"
+        const quoteMatch = answer.question_text.match(/definition of '([^']+)'/)
+        if (quoteMatch) {
+          frontText = quoteMatch[1]
+        }
+      } else if (answer.question_text.includes("'")) {
+        // Pattern: "What does 'resilient' mean?"
+        const quoteMatch = answer.question_text.match(/'([^']+)'/)
+        if (quoteMatch) {
+          frontText = quoteMatch[1]
+        }
+      } else {
+        // Fallback: extract meaningful words from question
+        const words = answer.question_text
+          .replace(/[^\w\s]/g, '') // Remove punctuation
+          .split(' ')
+          .filter((word: string) => word.length > 3 && !['what', 'does', 'mean', 'definition', 'called'].includes(word.toLowerCase()))
+        frontText = words.slice(0, 2).join(' ') || answer.question_text.split(' ').slice(0, 3).join(' ')
+      }
+
+      // Clean up the extracted text
+      frontText = frontText.trim()
+
+      // Validate data before setting
+      if (!frontText || !answer.correct_answer) {
+        toast.error('Unable to extract flashcard data from this question')
+        return
+      }
+
+      const flashcardPreview = {
+        front_text: frontText,
+        back_text: answer.correct_answer,
+        example_sentence: `Quiz question: ${answer.question_text}`
+      }
+
+      setPreviewFlashcard(flashcardPreview)
+
+      // Show preview for 1.5 seconds before opening modal
+      setTimeout(() => {
+        setFlashcardData(flashcardPreview)
+        setIsFlashcardModalOpen(true)
+        setPreviewFlashcard(null)
+      }, 1500)
+    } catch (error) {
+      console.error('Error creating flashcard from quiz:', error)
+      toast.error('Failed to create flashcard from this question')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -312,16 +362,43 @@ export default function QuizResultPage() {
 
               {/* Create Flashcard Button for incorrect answers */}
               {!answer.is_correct && (
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCreateFlashcard(answer)}
-                    className="flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Create Flashcard for this question</span>
-                  </Button>
+                <div className="mt-4 space-y-3">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-800 mb-2">
+                      <strong>Turn this mistake into a learning opportunity!</strong>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCreateFlashcard(answer)}
+                      className="flex items-center space-x-2 bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
+                      disabled={!!previewFlashcard}
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>{previewFlashcard ? 'Creating Flashcard...' : 'Create Flashcard'}</span>
+                    </Button>
+                    <div className="text-xs text-blue-600 mt-1">
+                      This will create a flashcard with the question term and correct answer
+                    </div>
+                  </div>
+
+                  {/* Preview Flashcard */}
+                  {previewFlashcard && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200 animate-pulse">
+                      <div className="text-sm text-green-800 mb-2">
+                        <strong>Flashcard Preview:</strong>
+                      </div>
+                      <div className="bg-white p-3 rounded border-2 border-green-300">
+                        <div className="font-medium text-green-800 mb-2">Front:</div>
+                        <div className="text-green-700 mb-3">{previewFlashcard.front_text}</div>
+                        <div className="font-medium text-green-800 mb-2">Back:</div>
+                        <div className="text-green-700">{previewFlashcard.back_text}</div>
+                      </div>
+                      <div className="text-xs text-green-600 mt-2">
+                        Creating flashcard...
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -349,6 +426,7 @@ export default function QuizResultPage() {
         onClose={() => {
           setIsFlashcardModalOpen(false)
           setFlashcardData(null)
+          setPreviewFlashcard(null)
         }}
         initialData={flashcardData}
       />
