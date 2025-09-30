@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
@@ -7,6 +8,7 @@ import { useFlashcards } from '../hooks/useFlashcards'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
+  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
 
   // Use React Query hooks instead of local state and useEffect
@@ -126,7 +128,7 @@ export default function FlashcardsPage() {
           <Button
             variant="secondary"
             className="flex items-center space-x-2"
-            onClick={() => window.location.href = '/flashcards/review'}
+            onClick={() => navigate('/flashcards/review')}
           >
             <RotateCcw className="h-4 w-4" />
             <span>Start Review Session</span>

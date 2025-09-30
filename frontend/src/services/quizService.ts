@@ -96,6 +96,12 @@ export class QuizService {
     return response.data
   }
 
+  // Get a quick quiz generated from user's flashcards
+  static async getQuickQuiz(): Promise<Quiz> {
+    const response = await api.get('/v1/quizzes/quick')
+    return response.data
+  }
+
   // Create a new quiz
   static async createQuiz(quizData: QuizCreate): Promise<Quiz> {
     const response = await api.post('/v1/quizzes/', quizData)

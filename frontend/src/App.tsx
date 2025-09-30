@@ -16,6 +16,8 @@ import QuizResultPage from './pages/QuizResultPage'
 import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import ProgressPage from './pages/ProgressPage'
+import QuickQuizPage from './pages/QuickQuizPage'
+import FlashcardReviewPage from './pages/FlashcardReviewPage'
 
 // Components
 import Layout from './components/Layout'
@@ -138,6 +140,28 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <QuizResultPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Review and Quick Quiz Routes */}
+        <Route
+          path="/flashcards/review"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FlashcardReviewPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quizzes/quick"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuickQuizPage />
               </Layout>
             </ProtectedRoute>
           }

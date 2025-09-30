@@ -1,12 +1,14 @@
 from typing import Any, List
+import random
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core import deps
-from app.crud import quiz
-from app.schemas.quiz import Quiz, QuizCreate, QuizUpdate, QuizAttempt, QuizAttemptCreate, QuizAttemptSubmit
+from app.crud import quiz, flashcard
+from app.schemas.quiz import Quiz, QuizCreate, QuizUpdate, QuizAttempt, QuizAttemptCreate, QuizAttemptSubmit, QuizQuestionCreate
 from app.schemas.user import User
 
 router = APIRouter()
@@ -26,6 +28,55 @@ def read_quizzes(
         db=db, user_id=current_user.id, skip=skip, limit=limit
     )
     return quizzes
+
+
+@router.get("/quick", response_model=Quiz)
+def get_quick_quiz(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Generate a quick, random quiz from the user's flashcards.
+    """
+    user_flashcards = flashcard.get_by_user(db, user_id=current_user.id, limit=100)
+
+    if len(user_flashcards) < 4:
+        raise HTTPException(status_code=400, detail="Not enough flashcards to generate a quiz. Please create at least 4 flashcards.")
+
+    # Lấy 10 flashcard ngẫu nhiên
+    selected_cards = random.sample(user_flashcards, min(10, len(user_flashcards)))
+
+    questions = []
+    for i, card in enumerate(selected_cards):
+        # Tạo 3 đáp án sai ngẫu nhiên từ các thẻ khác
+        other_cards = [c for c in user_flashcards if c.id != card.id]
+        wrong_answers = [c.back_text for c in random.sample(other_cards, 3)]
+
+        options = wrong_answers + [card.back_text]
+        random.shuffle(options)
+
+        question = QuizQuestionCreate(
+            question_text=f"What is the definition of '{card.front_text}'?",
+            question_type="multiple_choice",
+            options=options,
+            correct_answer=card.back_text,
+            points=1,
+            order_index=i + 1
+        )
+        questions.append(question)
+
+    # Trả về một đối tượng Quiz tạm thời
+    return {
+        "id": 0, # ID tạm
+        "title": "Quick Vocabulary Quiz",
+        "description": "A quick quiz generated from your flashcards.",
+        "quiz_type": "vocabulary",
+        "difficulty_level": "medium",
+        "created_by": current_user.id,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "questions": questions
+    }
 
 
 @router.post("/", response_model=Quiz)

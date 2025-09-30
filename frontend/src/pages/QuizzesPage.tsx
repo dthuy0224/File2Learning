@@ -112,7 +112,7 @@ export default function QuizzesPage() {
           <Button
             variant="secondary"
             className="flex items-center space-x-2"
-            onClick={() => window.location.href = '/quizzes/quick'}
+            onClick={() => navigate('/quizzes/quick')}
           >
             <Play className="h-4 w-4" />
             <span>Start Quick Quiz</span>
