@@ -47,11 +47,8 @@ def get_quick_quiz(
     selected_cards = random.sample(user_flashcards, num_questions)
 
     questions = []
-    for i, card in enumerate(selected_cards):
-        # Lấy 3 đáp án sai ngẫu nhiên từ các thẻ KHÁC với thẻ hiện tại
+    for i, card in enumerate(selected_cards):       
         other_cards = [c for c in user_flashcards if c.id != card.id]
-
-        # Đảm bảo có đủ thẻ để tạo đáp án sai
         num_wrong_answers = min(3, len(other_cards))
         wrong_cards = random.sample(other_cards, num_wrong_answers)
         wrong_answers = [c.back_text for c in wrong_cards]
@@ -69,9 +66,9 @@ def get_quick_quiz(
         )
         questions.append(question)
 
-    # Trả về một đối tượng Quiz tạm thời
+    
     return {
-        "id": 0, # ID tạm
+        "id": 0, 
         "title": "Quick Vocabulary Quiz",
         "description": "A quick quiz generated from your flashcards.",
         "quiz_type": "vocabulary",
@@ -112,7 +109,6 @@ def read_quiz(
     quiz_obj = quiz.get(db=db, id=quiz_id)
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    # Allow access to any user's quiz (public quizzes)
     return quiz_obj
 
 
@@ -150,18 +146,18 @@ def start_quiz_attempt(
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
-    # Create QuizAttempt record
+    
     from app.models.quiz import QuizAttempt
     from datetime import datetime
 
     attempt_obj = QuizAttempt(
         quiz_id=quiz_id,
         user_id=current_user.id,
-        answers={},  # Empty initially
-        score=0,     # Will be calculated later
-        max_score=0, # Will be calculated later
-        percentage=0, # Will be calculated later
-        time_taken=None, # Will be set when completed
+        answers={}, 
+        score=0,     
+        max_score=0, 
+        percentage=0, 
+        time_taken=None, 
         is_completed=False,
         started_at=datetime.utcnow(),
         completed_at=None
@@ -189,14 +185,14 @@ def submit_quiz_attempt(
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
-    # Get all questions for this quiz
+    
     from app.models.quiz import QuizQuestion
     questions = db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
 
     if not questions:
         raise HTTPException(status_code=400, detail="Quiz has no questions")
 
-    # Calculate scores
+    
     correct_answers = 0
     total_points = 0
     answers_dict = {}
@@ -206,7 +202,7 @@ def submit_quiz_attempt(
         user_answer = submission.answers.get(question_id, "")
         correct_answer = question.correct_answer
 
-        # Store the user's answer
+        
         answers_dict[question_id] = {
             "question_text": question.question_text,
             "user_answer": user_answer,
@@ -216,16 +212,16 @@ def submit_quiz_attempt(
             "points": question.points
         }
 
-        # Check if answer is correct (case-insensitive)
+        
         if user_answer.strip().lower() == correct_answer.strip().lower():
             correct_answers += 1
 
         total_points += question.points
 
-    # Calculate percentage
+    
     percentage = int((correct_answers / len(questions)) * 100) if questions else 0
 
-    # Update the attempt record
+    
     from app.models.quiz import QuizAttempt 
     from datetime import datetime            
 
@@ -238,7 +234,7 @@ def submit_quiz_attempt(
     if not attempt_obj:
         raise HTTPException(status_code=400, detail="No active quiz attempt found")
 
-    # Update attempt with results
+            
     attempt_obj.answers = answers_dict
     attempt_obj.score = correct_answers * (100 // len(questions)) if questions else 0  # Score out of 100
     attempt_obj.max_score = 100

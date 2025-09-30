@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -5,56 +6,34 @@ import { Brain, Plus, Loader2, Play } from 'lucide-react'
 import QuizService from '../services/quizService'
 import { useQuizzes } from '../hooks/useQuizzes'
 import QuizCard from '../components/QuizCard'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
+import SelectDocumentModal from '../components/SelectDocumentModal'
 
 export default function QuizzesPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const { data: quizzes, isLoading: quizzesLoading, error } = useQuizzes()
 
-  const createQuizMutation = useMutation({
-    mutationFn: () => QuizService.createQuiz({
-      title: 'New Vocabulary Quiz',
-      description: 'A quiz about vocabulary words',
-      quiz_type: 'vocabulary',
-      difficulty_level: 'medium',
-      questions: []
-    }),
-    onSuccess: () => {
-      toast.success('Quiz created successfully')
-      // Refresh the quizzes list after successful creation
-      queryClient.invalidateQueries({ queryKey: ['quizzes'] })
-    },
-    onError: () => {
-      toast.error('Failed to create quiz')
-    }
-  })
-
-  const deleteQuizMutation = useMutation({
-    mutationFn: (quizId: number) => QuizService.deleteQuiz(quizId),
-    onSuccess: () => {
-      toast.success('Quiz deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['quizzes'] })
-    },
-    onError: () => {
-      toast.error('Failed to delete quiz')
-    }
-  })
+  const handleCreateQuiz = () => {
+    setIsModalOpen(true)
+  }
 
   const handleStartQuiz = async (quizId: number) => {
     try {
       await QuizService.startQuizAttempt(quizId)
-      toast.success('Quiz started!')
       navigate(`/quizzes/${quizId}/take`)
     } catch (error) {
-      toast.error('Failed to start quiz')
+      console.error('Failed to start quiz:', error)
     }
   }
 
-  const handleDeleteQuiz = (quizId: number) => {
+  const handleDeleteQuiz = async (quizId: number) => {
     if (!confirm('Are you sure you want to delete this quiz?')) return
-    deleteQuizMutation.mutate(quizId)
+
+    try {
+      await QuizService.deleteQuiz(quizId)
+    } catch (error) {
+      console.error('Failed to delete quiz:', error)
+    }
   }
 
   if (quizzesLoading) {
@@ -87,15 +66,10 @@ export default function QuizzesPage() {
           <p className="text-gray-600 mt-2">Test your knowledge with AI-generated quizzes</p>
         </div>
         <Button
-          onClick={() => createQuizMutation.mutate()}
-          disabled={createQuizMutation.isPending}
+          onClick={handleCreateQuiz}
           className="flex items-center space-x-2"
         >
-          {createQuizMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
+          <Plus className="h-4 w-4" />
           <span>Create Quiz</span>
         </Button>
       </div>
@@ -138,7 +112,7 @@ export default function QuizzesPage() {
             <div className="text-center text-gray-500">
               <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No quizzes yet. Create your first quiz to get started!</p>
-              <Button className="mt-4" onClick={() => createQuizMutation.mutate()}>
+              <Button className="mt-4" onClick={handleCreateQuiz}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Quiz
               </Button>
@@ -146,6 +120,12 @@ export default function QuizzesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Select Document Modal */}
+      <SelectDocumentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   )
 }

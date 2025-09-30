@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
 import FlashcardService from '../services/flashcardService'
 import { useFlashcards } from '../hooks/useFlashcards'
+import AddFlashcardModal from '../components/AddFlashcardModal'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
   const navigate = useNavigate()
-  const [creating, setCreating] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Use React Query hooks instead of local state and useEffect
   const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
@@ -24,24 +25,9 @@ export default function FlashcardsPage() {
     new: 0
   }
 
-  const handleCreateFlashcard = async () => {
-    try {
-      setCreating(true)
-      // Example flashcard creation - in real app this would come from a form
-      await FlashcardService.createFlashcard({
-        front_text: 'Example Word',
-        back_text: 'Definition of example word',
-        difficulty_level: 'medium'
-      })
-
-      toast.success('Flashcard created successfully')
-      // React Query will automatically refetch the flashcards list
-    } catch (error) {
-      console.error('Error creating flashcard:', error)
-      toast.error('Failed to create flashcard')
-    } finally {
-      setCreating(false)
-    }
+  // Handle opening the create flashcard modal
+  const handleCreateFlashcard = () => {
+    setIsModalOpen(true)
   }
 
   const handleReviewFlashcard = async (flashcardId: number) => {
@@ -104,14 +90,9 @@ export default function FlashcardsPage() {
         </div>
         <Button
           onClick={handleCreateFlashcard}
-          disabled={creating}
           className="flex items-center space-x-2"
         >
-          {creating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
+          <Plus className="h-4 w-4" />
           <span>Create Flashcard</span>
         </Button>
       </div>
@@ -238,6 +219,12 @@ export default function FlashcardsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Add Flashcard Modal */}
+      <AddFlashcardModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   )
 }
