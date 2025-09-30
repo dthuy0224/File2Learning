@@ -4,27 +4,16 @@ import { Brain, Play, Clock, Trash2, Edit, BarChart3, Loader2 } from 'lucide-rea
 import { Quiz } from '@/services/quizService'
 import { useQuizAttempts } from '@/hooks/useQuizzes'
 import QuizService from '@/services/quizService'
-import toast from 'react-hot-toast'
 
 interface QuizCardProps {
   quiz: Quiz
   onDelete: (quizId: number) => void
+  onStart: (quizId: number) => void
 }
 
-export default function QuizCard({ quiz, onDelete }: QuizCardProps) {
+export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
   // Hook được gọi ở top-level của component con, hoàn toàn hợp lệ
   const { data: attempts, isLoading: attemptsLoading } = useQuizAttempts(quiz.id)
-
-  const handleStartQuiz = async (quizId: number) => {
-    try {
-      await QuizService.startQuizAttempt(quizId)
-      toast.success('Quiz started!')
-      // Navigate to quiz taking page
-      window.location.href = `/quizzes/${quizId}/take`
-    } catch (error) {
-      toast.error('Failed to start quiz')
-    }
-  }
 
   const stats = QuizService.getQuizStatsFromAttempts(attempts || [])
 
@@ -86,14 +75,14 @@ export default function QuizCard({ quiz, onDelete }: QuizCardProps) {
         </div>
         <div className="mt-4 flex space-x-2">
           <Button size="sm" variant="outline">Preview</Button>
-          <Button
-            size="sm"
-            className="flex items-center space-x-1"
-            onClick={() => handleStartQuiz(quiz.id)}
-          >
-            <Play className="h-3 w-3" />
-            <span>Start</span>
-          </Button>
+              <Button
+                size="sm"
+                className="flex items-center space-x-1"
+                onClick={() => onStart(quiz.id)}
+              >
+                <Play className="h-3 w-3" />
+                <span>Start</span>
+              </Button>
         </div>
       </CardContent>
     </Card>

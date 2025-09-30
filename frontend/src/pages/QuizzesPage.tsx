@@ -40,6 +40,16 @@ export default function QuizzesPage() {
     }
   })
 
+  const handleStartQuiz = async (quizId: number) => {
+    try {
+      await QuizService.startQuizAttempt(quizId)
+      toast.success('Quiz started!')
+      window.location.href = `/quizzes/${quizId}/take`
+    } catch (error) {
+      toast.error('Failed to start quiz')
+    }
+  }
+
   const handleDeleteQuiz = (quizId: number) => {
     if (!confirm('Are you sure you want to delete this quiz?')) return
     deleteQuizMutation.mutate(quizId)
@@ -111,7 +121,12 @@ export default function QuizzesPage() {
       {/* Quizzes Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {quizzes?.map((quiz) => (
-          <QuizCard key={quiz.id} quiz={quiz} onDelete={handleDeleteQuiz} />
+          <QuizCard
+            key={quiz.id}
+            quiz={quiz}
+            onDelete={handleDeleteQuiz}
+            onStart={handleStartQuiz}
+          />
         ))}
       </div>
 
