@@ -94,10 +94,29 @@ def start_quiz_attempt(
     quiz_obj = quiz.get(db=db, id=quiz_id)
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    
-    # TODO: Create QuizAttempt record
-    # This is a placeholder implementation
-    return {"message": "Quiz attempt started", "quiz_id": quiz_id}
+
+    # Create QuizAttempt record
+    from app.models.quiz import QuizAttempt
+    from datetime import datetime
+
+    attempt_obj = QuizAttempt(
+        quiz_id=quiz_id,
+        user_id=current_user.id,
+        answers={},  # Empty initially
+        score=0,     # Will be calculated later
+        max_score=0, # Will be calculated later
+        percentage=0, # Will be calculated later
+        time_taken=None, # Will be set when completed
+        is_completed=False,
+        started_at=datetime.utcnow(),
+        completed_at=None
+    )
+
+    db.add(attempt_obj)
+    db.commit()
+    db.refresh(attempt_obj)
+
+    return attempt_obj
 
 
 @router.post("/{quiz_id}/submit", response_model=QuizAttempt)
@@ -114,11 +133,66 @@ def submit_quiz_attempt(
     quiz_obj = quiz.get(db=db, id=quiz_id)
     if not quiz_obj:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    
-    # TODO: Grade the quiz and save attempt
-    # Calculate score, save answers, mark as completed
-    # This is a placeholder implementation
-    return {"message": "Quiz submitted successfully", "quiz_id": quiz_id}
+
+    # Get all questions for this quiz
+    from app.models.quiz import QuizQuestion
+    questions = db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
+
+    if not questions:
+        raise HTTPException(status_code=400, detail="Quiz has no questions")
+
+    # Calculate scores
+    correct_answers = 0
+    total_points = 0
+    answers_dict = {}
+
+    for question in questions:
+        question_id = question.id
+        user_answer = submission.answers.get(question_id, "")
+        correct_answer = question.correct_answer
+
+        # Store the user's answer
+        answers_dict[question_id] = {
+            "question_text": question.question_text,
+            "user_answer": user_answer,
+            "correct_answer": correct_answer,
+            "is_correct": user_answer.strip().lower() == correct_answer.strip().lower(),
+            "explanation": question.explanation,
+            "points": question.points
+        }
+
+        # Check if answer is correct (case-insensitive)
+        if user_answer.strip().lower() == correct_answer.strip().lower():
+            correct_answers += 1
+
+        total_points += question.points
+
+    # Calculate percentage
+    percentage = int((correct_answers / len(questions)) * 100) if questions else 0
+
+    # Update the attempt record
+    attempt_obj = db.query(QuizAttempt).filter(
+        QuizAttempt.quiz_id == quiz_id,
+        QuizAttempt.user_id == current_user.id,
+        QuizAttempt.is_completed == False
+    ).first()
+
+    if not attempt_obj:
+        raise HTTPException(status_code=400, detail="No active quiz attempt found")
+
+    # Update attempt with results
+    attempt_obj.answers = answers_dict
+    attempt_obj.score = correct_answers * (100 // len(questions)) if questions else 0  # Score out of 100
+    attempt_obj.max_score = 100
+    attempt_obj.percentage = percentage
+    attempt_obj.time_taken = submission.total_time
+    attempt_obj.is_completed = True
+    attempt_obj.completed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(attempt_obj)
+
+    return attempt_obj
 
 
 @router.get("/{quiz_id}/attempts", response_model=List[QuizAttempt])

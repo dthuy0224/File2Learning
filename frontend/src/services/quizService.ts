@@ -121,7 +121,7 @@ export class QuizService {
   }
 
   // Start a quiz attempt
-  static async startQuizAttempt(quizId: number): Promise<{ message: string, quiz_id: number }> {
+  static async startQuizAttempt(quizId: number): Promise<QuizAttempt> {
     const response = await api.post(`/v1/quizzes/${quizId}/attempt`)
     return response.data
   }
@@ -135,6 +135,12 @@ export class QuizService {
   // Get quiz attempts for a specific quiz
   static async getQuizAttempts(quizId: number): Promise<QuizAttempt[]> {
     const response = await api.get(`/v1/quizzes/${quizId}/attempts`)
+    return response.data
+  }
+
+  // Get a specific quiz attempt by ID
+  static async getQuizAttempt(attemptId: number): Promise<QuizAttempt & { quiz?: Quiz }> {
+    const response = await api.get(`/v1/quizzes/attempts/${attemptId}`)
     return response.data
   }
 

@@ -167,6 +167,27 @@ export class AIService {
     const response = await api.delete(`/v1/documents/${documentId}`)
     return response.data
   }
+
+  // Quiz operations
+  static async saveQuiz(quizData: {
+    title: string
+    description?: string
+    quiz_type: string
+    difficulty_level?: string
+    document_id?: number
+    questions: {
+      question: string
+      options?: string[]
+      correct_answer: string
+      question_type: 'multiple_choice' | 'fill_blank' | 'true_false'
+      explanation?: string
+      points?: number
+    }[]
+  }): Promise<any> {
+    // Use the quiz service to create the quiz
+    const { QuizService } = await import('./quizService')
+    return QuizService.createQuizFromAI(quizData)
+  }
 }
 
 export default AIService

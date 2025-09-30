@@ -11,6 +11,8 @@ import DocumentsPage from './pages/DocumentsPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import QuizzesPage from './pages/QuizzesPage'
 import QuizGenerationPage from './pages/QuizGenerationPage'
+import QuizTakingPage from './pages/QuizTakingPage'
+import QuizResultPage from './pages/QuizResultPage'
 import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import ProgressPage from './pages/ProgressPage'
@@ -114,6 +116,28 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <FlashcardGenerationPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Quiz Taking Routes */}
+        <Route
+          path="/quizzes/:quizId/take"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizTakingPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attempts/:attemptId/results"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizResultPage />
               </Layout>
             </ProtectedRoute>
           }

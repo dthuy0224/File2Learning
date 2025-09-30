@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Brain, Plus, Loader2, Play } from 'lucide-react'
@@ -8,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 export default function QuizzesPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: quizzes, isLoading: quizzesLoading, error } = useQuizzes()
 
@@ -44,7 +46,7 @@ export default function QuizzesPage() {
     try {
       await QuizService.startQuizAttempt(quizId)
       toast.success('Quiz started!')
-      window.location.href = `/quizzes/${quizId}/take`
+      navigate(`/quizzes/${quizId}/take`)
     } catch (error) {
       toast.error('Failed to start quiz')
     }

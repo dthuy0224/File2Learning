@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { progressService } from '@/services/progressService'
 
 // Custom hooks for progress data using React Query
-
 export const useUserStats = (rangeDays: number = 30) => {
   return useQuery({
     queryKey: ['userStats', rangeDays],

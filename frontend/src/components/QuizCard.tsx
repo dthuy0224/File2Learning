@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Brain, Play, Clock, Trash2, Edit, BarChart3, Loader2 } from 'lucide-react'
@@ -12,6 +13,7 @@ interface QuizCardProps {
 }
 
 export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
+  const navigate = useNavigate()
   // Hook được gọi ở top-level của component con, hoàn toàn hợp lệ
   const { data: attempts, isLoading: attemptsLoading } = useQuizAttempts(quiz.id)
 
@@ -29,7 +31,7 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => window.location.href = `/quizzes/${quiz.id}/edit`}
+              onClick={() => navigate(`/quizzes/${quiz.id}/edit`)}
             >
               <Edit className="h-3 w-3" />
             </Button>
