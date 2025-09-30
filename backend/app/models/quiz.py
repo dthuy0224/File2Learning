@@ -26,8 +26,8 @@ class Quiz(Base):
     # Relationships
     document = relationship("Document", back_populates="quizzes")
     creator = relationship("User")
-    questions = relationship("QuizQuestion", back_populates="quiz")
-    attempts = relationship("QuizAttempt", back_populates="quiz")
+    questions = relationship("QuizQuestion", back_populates="quiz", cascade="all, delete-orphan")
+    attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
 
 
 class QuizQuestion(Base):

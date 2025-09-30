@@ -107,44 +107,30 @@ export default function QuizGenerationPage() {
     try {
       setSavingQuiz(true);
 
-      
       const quizData = {
         title: `${document.title || document.original_filename} - Quiz`,
         description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
         quiz_type: quizType === 'mcq' ? 'multiple_choice' : quizType === 'fill_blank' ? 'fill_blank' : 'mixed',
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
-        questions: quiz.map((q, index) => ({
-          question: q.question_text, 
+        questions: quiz.map((q) => ({
+          question: q.question_text, // Đổi từ question_text thành question để khớp với createQuizFromAI
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
           explanation: q.explanation,
-          points: 1,
-          order_index: index + 1
+          points: 1
+          // Không cần order_index vì createQuizFromAI sẽ tự động tạo
         }))
       };
 
-      const savedQuizData = await QuizService.createQuizFromAI(quizData as any); 
+      // Gọi đến service để tạo quiz
+      const savedQuizData = await QuizService.createQuizFromAI(quizData as any);
       setSavedQuiz(savedQuizData);
       toast.success('Quiz saved successfully!');
     } catch (error: any) {
       console.error('Error saving quiz:', error);
-
-      
-      const errorDetail = error.response?.data?.detail;
-      if (errorDetail) {
-        
-        if (Array.isArray(errorDetail)) {
-          const firstError = errorDetail[0];
-          toast.error(`Save failed: ${firstError.msg} (in ${firstError.loc.join(' > ')})`);
-        } else {
-          toast.error(`Save failed: ${errorDetail}`);
-        }
-      } else {
-        toast.error('Failed to save quiz. Please check console for details.');
-      }
-
+      toast.error(error.response?.data?.detail?.[0]?.msg || 'Failed to save quiz.');
     } finally {
       setSavingQuiz(false);
     }
