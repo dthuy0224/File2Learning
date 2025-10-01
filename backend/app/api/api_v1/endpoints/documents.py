@@ -1,4 +1,5 @@
-from typing import Any, List
+from typing import Any, List, Dict
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
@@ -8,7 +9,8 @@ from app.core import deps
 from app.crud import document
 from app.schemas.document import Document, DocumentCreate, DocumentUpdate
 from app.schemas.user import User
-from app.utils.file_processor import process_uploaded_file
+from app.utils.file_processor import FileProcessor, SecurityScanner
+from app.tasks.document_tasks import process_document_task
 
 router = APIRouter()
 
@@ -45,59 +47,73 @@ async def upload_document(
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Upload a document file and process it.
+    Upload a document file for background processing.
     Supports PDF, DOCX, DOC, and TXT files.
     """
     # Read file content
     content = await file.read()
     file_size = len(content)
 
-    # Process file using service
-    try:
-        result = process_uploaded_file(file.filename, file_size, content)
-    except HTTPException:
-        raise
-    except Exception as e:
+    # Validate file
+    file_extension = FileProcessor.validate_file(file.filename, file_size)
+
+    # Generate unique filename and path
+    sanitized_filename, file_path = FileProcessor.generate_unique_filename(file.filename)
+
+    # Save file to disk
+    FileProcessor.save_file(file_path, content)
+
+    # Security scan
+    security_scan = SecurityScanner.scan_file_content(content.decode('utf-8', errors='ignore'), file.filename)
+
+    if not security_scan["is_safe"]:
+        # Clean up file if security scan fails
+        FileProcessor.cleanup_file(file_path)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing file: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File failed security scan: {', '.join(security_scan['issues'][:3])}"
         )
 
-    # Create document record
+    # Create document record with pending status
     document_in = DocumentCreate(
-        filename=result["filename"],
+        filename=sanitized_filename,
         original_filename=file.filename,
-        file_path=str(result["file_path"]),
+        file_path=str(file_path.resolve()),
         file_size=file_size,
-        document_type=result["file_extension"][1:],  # Remove the dot
-        content=result["extracted_content"],
-        word_count=result["word_count"],
-        difficulty_level=result["difficulty_level"],
-        title=file.filename.split('.')[0]  # Use filename without extension as title
+        document_type=file_extension[1:],  # Remove the dot
+        title=file.filename.split('.')[0],  # Use filename without extension as title
+        processing_status='pending'
     )
 
     try:
         document_obj = document.create_with_owner(
             db=db, obj_in=document_in, owner_id=current_user.id
         )
+
+        # Trigger background processing
+        process_document_task.delay(
+            document_id=document_obj.id,
+            file_path=str(file_path.resolve()),
+            original_filename=file.filename
+        )
+
+        return {
+            "message": "Document uploaded successfully. Processing in background.",
+            "document_id": document_obj.id,
+            "filename": file.filename,
+            "file_size": file_size,
+            "document_type": file_extension[1:],
+            "status": "pending",
+            "processing_message": "Document is being processed. Check status endpoint for updates."
+        }
+
     except Exception as e:
         # Clean up file if database operation fails
-        result["file_path"].unlink(missing_ok=True)
+        FileProcessor.cleanup_file(file_path)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating document record: {str(e)}"
         )
-
-    return {
-        "message": "Document uploaded and processed successfully",
-        "document_id": document_obj.id,
-        "filename": file.filename,
-        "file_size": file_size,
-        "word_count": result["word_count"],
-        "document_type": result["file_extension"][1:],
-        "difficulty_level": result["difficulty_level"],
-        "status": "processed"
-    }
 
 
 @router.get("/{document_id}", response_model=Document)
@@ -182,11 +198,23 @@ def delete_document(
 
     # Delete physical file if exists
     if document_obj.file_path:
-        file_path = Path(document_obj.file_path)
-        if file_path.exists():
-            file_path.unlink()
+        try:
+            # Build absolute path assuming project root is /app in container
+            project_root = Path("/app")
+            full_file_path = project_root / document_obj.file_path
 
-    # Delete document record
+            if full_file_path.exists():
+                full_file_path.unlink()
+                print(f"Successfully deleted file: {full_file_path}")
+            else:
+                print(f"File not found for deletion: {full_file_path}")
+
+        except Exception as e:
+            # Log error but don't crash the entire request
+            # Database record deletion is more important
+            print(f"Error deleting physical file: {str(e)}")
+
+    # Delete document record from database
     document.remove(db=db, id=document_id)
     return {"message": "Document deleted successfully"}
 
@@ -207,18 +235,135 @@ def get_document_status(
     if document_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
 
+    # Calculate processing progress
+    progress_info = _calculate_processing_progress(document_obj)
+
     return {
         "document_id": document_obj.id,
-        "status": "processed" if document_obj.processed_at else "processing",
+        "status": document_obj.processing_status,
         "filename": document_obj.original_filename,
         "document_type": document_obj.document_type,
         "word_count": document_obj.word_count,
         "difficulty_level": document_obj.difficulty_level,
         "file_size": document_obj.file_size,
+        "content_quality": document_obj.content_quality,
+        "quality_score": document_obj.quality_score,
+        "language_detected": document_obj.language_detected,
+        "encoding_issues": document_obj.encoding_issues,
         "created_at": document_obj.created_at,
         "processed_at": document_obj.processed_at,
-        "title": document_obj.title
+        "processing_error": document_obj.processing_error,
+        "title": document_obj.title,
+        "progress": progress_info
     }
+
+
+@router.get("/status/batch", response_model=Dict[str, Any])
+def get_documents_status_batch(
+    *,
+    db: Session = Depends(get_db),
+    document_ids: str,  # Comma-separated document IDs
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get processing status for multiple documents.
+    Usage: /status/batch?document_ids=1,2,3
+    """
+    try:
+        ids = [int(id_str.strip()) for id_str in document_ids.split(',') if id_str.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid document IDs format")
+
+    if len(ids) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 documents per batch request")
+
+    results = {}
+    for doc_id in ids:
+        try:
+            document_obj = document.get(db=db, id=doc_id)
+            if not document_obj:
+                results[str(doc_id)] = {"error": "Document not found"}
+                continue
+
+            if document_obj.owner_id != current_user.id:
+                results[str(doc_id)] = {"error": "Not enough permissions"}
+                continue
+
+            progress_info = _calculate_processing_progress(document_obj)
+            results[str(doc_id)] = {
+                "status": document_obj.processing_status,
+                "filename": document_obj.original_filename,
+                "document_type": document_obj.document_type,
+                "word_count": document_obj.word_count,
+                "difficulty_level": document_obj.difficulty_level,
+                "content_quality": document_obj.content_quality,
+                "quality_score": document_obj.quality_score,
+                "language_detected": document_obj.language_detected,
+                "encoding_issues": document_obj.encoding_issues,
+                "created_at": document_obj.created_at,
+                "processed_at": document_obj.processed_at,
+                "processing_error": document_obj.processing_error,
+                "progress": progress_info
+            }
+        except Exception as e:
+            results[str(doc_id)] = {"error": str(e)}
+
+    return {
+        "documents": results,
+        "total_requested": len(ids),
+        "total_returned": len(results)
+    }
+
+
+def _calculate_processing_progress(document_obj) -> Dict[str, Any]:
+    """
+    Calculate processing progress and estimated completion
+    """
+    status = document_obj.processing_status
+    created_at = document_obj.created_at
+
+    if not created_at:
+        return {"percentage": 0, "stage": "unknown", "estimated_completion": None}
+
+    current_time = datetime.utcnow()
+    elapsed_time = (current_time - created_at).total_seconds()
+
+    if status == "completed":
+        return {
+            "percentage": 100,
+            "stage": "completed",
+            "estimated_completion": document_obj.processed_at,
+            "actual_completion": document_obj.processed_at
+        }
+    elif status == "failed":
+        return {
+            "percentage": 0,
+            "stage": "failed",
+            "estimated_completion": None,
+            "error": document_obj.processing_error
+        }
+    elif status == "processing":
+        # Estimate progress based on elapsed time (rough heuristic)
+        # Processing typically takes 2-10 seconds per MB
+        file_size_mb = document_obj.file_size / (1024 * 1024) if document_obj.file_size else 1
+        estimated_total_time = max(file_size_mb * 3, 10)  # At least 10 seconds
+        progress_percentage = min((elapsed_time / estimated_total_time) * 100, 95)  # Max 95% until actually completed
+
+        estimated_completion = created_at + timedelta(seconds=estimated_total_time)
+
+        return {
+            "percentage": round(progress_percentage, 1),
+            "stage": "processing",
+            "estimated_completion": estimated_completion.isoformat(),
+            "elapsed_time_seconds": round(elapsed_time, 1)
+        }
+    else:  # pending
+        return {
+            "percentage": 0,
+            "stage": "pending",
+            "estimated_completion": None,
+            "queue_position": "waiting_for_processing"
+        }
 
 
 @router.post("/{document_id}/reprocess")
