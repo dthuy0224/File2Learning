@@ -44,7 +44,7 @@ def read_flashcards_in_set(
     """
     Retrieve all flashcards for a specific set (document).
     """
-    # Kiểm tra xem bộ thẻ có tồn tại và thuộc về user không
+    # Check if the flashcard set exists and belongs to the user
     document = db.query(Document).filter(Document.id == set_id, Document.owner_id == current_user.id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Flashcard set not found")

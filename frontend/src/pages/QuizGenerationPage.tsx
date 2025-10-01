@@ -114,17 +114,17 @@ export default function QuizGenerationPage() {
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
         questions: quiz.map((q) => ({
-          question: q.question_text, // Đổi từ question_text thành question để khớp với createQuizFromAI
+          question: q.question_text, // Change from question_text to question to match createQuizFromAI
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
           explanation: q.explanation,
           points: 1
-          // Không cần order_index vì createQuizFromAI sẽ tự động tạo
+          // No need for order_index as createQuizFromAI will create it automatically
         }))
       };
 
-      // Gọi đến service để tạo quiz
+      // Call the service to create quiz
       const savedQuizData = await QuizService.createQuizFromAI(quizData as any);
       setSavedQuiz(savedQuizData);
       toast.success('Quiz saved successfully!');

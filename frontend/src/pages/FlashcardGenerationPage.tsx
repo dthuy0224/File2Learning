@@ -77,13 +77,13 @@ export default function FlashcardGenerationPage() {
     const cardsToSave = Array.from(selectedCards).map(index => flashcards[index]);
 
     try {
-      // Gọi API để lưu từng thẻ
+      // Call API to save each card
       await FlashcardService.createMultipleFlashcards(cardsToSave.map(card => ({
           ...card,
           document_id: parseInt(documentId!)
       })));
       toast.success(`${cardsToSave.length} flashcards saved successfully!`);
-      navigate('/flashcards'); // Điều hướng về trang danh sách flashcard
+      navigate('/flashcards'); // Navigate back to flashcard list page
     } catch (error) {
       toast.error('Failed to save flashcards.');
     } finally {

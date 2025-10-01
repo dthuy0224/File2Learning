@@ -50,12 +50,12 @@ def get_quick_quiz(
     for i, card in enumerate(selected_cards):
         other_cards = [c for c in user_flashcards if c.id != card.id]
 
-        # Đảm bảo có đủ thẻ để tạo đáp án sai
+        # Ensure there are enough cards to create wrong answers
         num_wrong_answers = min(3, len(other_cards))
 
-        # Kiểm tra edge case: nếu không đủ thẻ để tạo đáp án sai
+        # Check edge case: if not enough cards to create wrong answers
         if num_wrong_answers == 0:
-            # Nếu không có thẻ nào khác, tạo đáp án sai giả
+            # If no other cards, create fake wrong answers
             wrong_answers = ["Option A", "Option B", "Option C"]
         else:
             wrong_cards = random.sample(other_cards, num_wrong_answers)

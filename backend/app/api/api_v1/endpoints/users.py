@@ -356,7 +356,7 @@ def get_recent_activities(
         activities.append(RecentActivityItem(
             id=attempt.id,
             type='quiz',
-            title=f'Quiz hoàn thành: {attempt.quiz.title}',
+            title=f'Quiz completed: {attempt.quiz.title}',
             score=f'{attempt.percentage}%',
             time_ago=time_ago,
             created_at=attempt.completed_at
@@ -375,8 +375,8 @@ def get_recent_activities(
         activities.append(RecentActivityItem(
             id=card.id,
             type='flashcard',
-            title=f'Ôn tập: {card.front_text}',
-            score=f'Độ dễ: {card.ease_factor:.1f}',
+            title=f'Reviewed: {card.front_text}',
+            score=f'Ease: {card.ease_factor:.1f}',
             time_ago=time_ago,
             created_at=card.updated_at
         ))
@@ -393,8 +393,8 @@ def get_recent_activities(
         activities.append(RecentActivityItem(
             id=doc.id,
             type='document',
-            title=f'Đã đọc: {doc.title or doc.original_filename}',
-            score='Đã hoàn thành',
+            title=f'Read: {doc.title or doc.original_filename}',
+            score='Completed',
             time_ago=time_ago,
             created_at=doc.created_at
         ))
@@ -479,10 +479,10 @@ def _format_time_ago(time_diff: timedelta) -> str:
     minutes, _ = divmod(remainder, 60)
 
     if days > 0:
-        return f"{days} ngày trước"
+        return f"{days} days ago"
     elif hours > 0:
-        return f"{hours} giờ trước"
+        return f"{hours} hours ago"
     elif minutes > 0:
-        return f"{minutes} phút trước"
+        return f"{minutes} minutes ago"
     else:
-        return "Vừa xong"
+        return "Just now"

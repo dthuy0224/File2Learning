@@ -209,7 +209,7 @@ export default function DocumentDetailPage() {
                   variant="outline"
                   size="sm"
                   className="mt-2"
-                  // onClick={handleGenerateSummary} // Bạn sẽ cần viết hàm này
+                  // onClick={handleGenerateSummary} // You will need to write this function
                 >
                   Generate Summary with AI
                 </Button>

@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Các mức độ đánh giá tương ứng với 'quality' score (0-5) cho thuật toán SM-2
+// Quality rating levels corresponding to 'quality' score (0-5) for SM-2 algorithm
 const QUALITY_LEVELS = [
   { label: 'Forgot', value: 0, color: 'bg-red-500' },
   { label: 'Hard', value: 3, color: 'bg-yellow-500' },
@@ -19,23 +19,23 @@ export default function FlashcardReviewPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // 1. Lấy danh sách các thẻ cần ôn tập
+  // 1. Get list of cards that need review
   const { data: dueCards, isLoading, isError } = useQuery({
     queryKey: ['dueFlashcards'],
     queryFn: () => FlashcardService.getDueFlashcards(50),
   });
 
-  // 2. Mutation để gửi kết quả review lên backend
+  // 2. Mutation to send review results to backend
   const reviewMutation = useMutation({
     mutationFn: ({ cardId, quality }: { cardId: number; quality: number }) =>
       FlashcardService.reviewFlashcard(cardId, { quality }),
     onSuccess: () => {
-      // Chuyển sang thẻ tiếp theo
+      // Move to next card
       if (dueCards && currentCardIndex < dueCards.length - 1) {
         setCurrentCardIndex(prev => prev + 1);
         setIsFlipped(false);
       } else {
-        // Hoàn thành phiên học
+        // Complete review session
         setCurrentCardIndex(prev => prev + 1);
         toast.success('Review session completed!');
         queryClient.invalidateQueries({ queryKey: ['flashcards'] });
@@ -61,7 +61,7 @@ export default function FlashcardReviewPage() {
     return <div className="text-center">Could not load the review session. Please try again.</div>;
   }
 
-  // Khi không có thẻ nào cần ôn tập hoặc đã hoàn thành
+  // When there are no cards to review or session is completed
   if (!dueCards || dueCards.length === 0 || currentCardIndex >= dueCards.length) {
     return (
       <div className="text-center max-w-md mx-auto">
@@ -83,23 +83,23 @@ export default function FlashcardReviewPage() {
       <h1 className="text-2xl font-bold mb-2 text-center">Review Session</h1>
       <p className="text-center text-gray-500 mb-4">Card {currentCardIndex + 1} of {dueCards.length}</p>
 
-      {/* Thẻ Flashcard với hiệu ứng lật */}
+      {/* Flashcard with flip effect */}
       <div
           className="relative h-64 cursor-pointer [transform-style:preserve-3d] transition-transform duration-500"
           style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
           onClick={() => setIsFlipped(!isFlipped)}
         >
-          {/* Mặt trước */}
+          {/* Front side */}
           <div className="absolute w-full h-full p-6 rounded-lg bg-blue-100 border-2 border-blue-300 flex items-center justify-center [backface-visibility:hidden]">
             <p className="text-2xl font-semibold text-blue-800 text-center">{currentCard.front_text}</p>
           </div>
-          {/* Mặt sau */}
+          {/* Back side */}
           <div className="absolute w-full h-full p-6 rounded-lg bg-green-100 border-2 border-green-300 flex flex-col items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
             <p className="text-xl font-medium text-green-800 text-center">{currentCard.back_text}</p>
           </div>
         </div>
 
-      {/* Nút đánh giá chỉ hiện khi thẻ đã được lật */}
+      {/* Rating buttons only show when card is flipped */}
       {isFlipped && (
         <div className="mt-6">
           <p className="text-center mb-4 font-medium">How well did you remember this?</p>
