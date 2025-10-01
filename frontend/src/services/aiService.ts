@@ -84,6 +84,21 @@ export interface DocumentStatus {
   }
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp?: string
+}
+
+export interface ChatResponse {
+  answer: string
+  document_id: number
+  model_used: string
+  success: boolean
+  message?: string
+  error?: string
+}
+
 export class AIService {
   // Document operations
   static async getDocuments(): Promise<Document[]> {
@@ -198,6 +213,22 @@ export class AIService {
     // Use the quiz service to create the quiz
     const { QuizService } = await import('./quizService')
     return QuizService.createQuizFromAI(quizData)
+  }
+
+  // Chat operations
+  static async chatWithDocument(
+    documentId: number,
+    query: string,
+    conversationHistory?: ChatMessage[]
+  ): Promise<ChatResponse> {
+    const response = await api.post(`/v1/ai/${documentId}/chat`, {
+      query,
+      conversation_history: conversationHistory?.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    })
+    return response.data
   }
 }
 

@@ -301,6 +301,93 @@ class OllamaService:
 
         return flashcards
 
+    async def get_chat_response(self, document_content: str, user_query: str, conversation_history: Optional[List[Dict]] = None) -> Dict:
+        """
+        Generate chat response based on document content and user query
+
+        Args:
+            document_content: The document text to base the response on
+            user_query: The user's question
+            conversation_history: Optional previous conversation context
+
+        Returns:
+            Dict containing the AI response and metadata
+        """
+        try:
+            # Truncate document content if too long for context window
+            max_content_length = 3000  # Conservative limit for chat context
+            if len(document_content) > max_content_length:
+                document_content = document_content[:max_content_length] + "..."
+
+            # Build context-aware prompt
+            prompt = self._build_chat_prompt(document_content, user_query, conversation_history)
+
+            response = self.client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.default_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,  # Slightly creative for conversational responses
+                        "top_p": 0.9
+                    }
+                }
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"Ollama API error: {response.status_code} - {response.text}")
+
+            result = response.json()
+            ai_response = result.get("response", "").strip()
+
+            return {
+                "success": True,
+                "answer": ai_response,
+                "model_used": self.default_model,
+                "document_length": len(document_content),
+                "query_length": len(user_query)
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating chat response with Ollama: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "answer": "Xin lỗi, tôi không thể trả lời câu hỏi của bạn ngay bây giờ. Vui lòng thử lại sau."
+            }
+
+    def _build_chat_prompt(self, document_content: str, user_query: str, conversation_history: Optional[List[Dict]] = None) -> str:
+        """Build prompt for chat response based on document context"""
+
+        # Start with system instruction
+        system_prompt = """Bạn là một trợ lý AI hữu ích chuyên trả lời câu hỏi dựa trên nội dung tài liệu được cung cấp.
+
+Quy tắc:
+1. Chỉ trả lời dựa trên thông tin có trong tài liệu được cung cấp
+2. Nếu câu hỏi không liên quan đến tài liệu, hãy lịch sự từ chối trả lời
+3. Giữ câu trả lời ngắn gọn, rõ ràng và hữu ích
+4. Sử dụng tiếng Việt để trả lời
+
+Tài liệu:
+"""
+
+        # Add document content
+        full_prompt = system_prompt + document_content
+
+        # Add conversation history if available
+        if conversation_history:
+            full_prompt += "\n\nLịch sử cuộc trò chuyện:\n"
+            for msg in conversation_history[-5:]:  # Last 5 messages for context
+                role = "Người dùng" if msg.get("role") == "user" else "AI"
+                content = msg.get("content", "")
+                full_prompt += f"{role}: {content}\n"
+
+        # Add current user query
+        full_prompt += f"\nCâu hỏi của người dùng: {user_query}\n\nTrả lời:"
+
+        return full_prompt
+
     def _generate_fallback_quiz(self, text: str, quiz_type: str, num_questions: int) -> List[Dict]:
         """Generate simple fallback quiz when AI fails"""
         # Simple keyword-based fallback
