@@ -13,6 +13,7 @@ import QuizzesPage from './pages/QuizzesPage'
 import QuizGenerationPage from './pages/QuizGenerationPage'
 import QuizTakingPage from './pages/QuizTakingPage'
 import QuizResultPage from './pages/QuizResultPage'
+import QuizEditPage from './pages/QuizEditPage'
 import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import ProgressPage from './pages/ProgressPage'
@@ -130,6 +131,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <QuizTakingPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quizzes/:quizId/edit"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizEditPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -8,6 +8,7 @@ import { useFlashcards } from '../hooks/useFlashcards'
 import AddFlashcardModal from '../components/AddFlashcardModal'
 import PracticeModal from '../components/PracticeModal'
 import FlashcardViewModal from '../components/FlashcardViewModal'
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
@@ -15,6 +16,17 @@ export default function FlashcardsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [practicingCard, setPracticingCard] = useState<Flashcard | null>(null)
   const [viewingCard, setViewingCard] = useState<Flashcard | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    cardId: number | null
+    cardName: string | null
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    cardId: null,
+    cardName: null,
+    isLoading: false
+  })
 
   // Use React Query hooks instead of local state and useEffect
   const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
@@ -35,16 +47,34 @@ export default function FlashcardsPage() {
   }
 
 
-  const handleDeleteFlashcard = async (flashcardId: number) => {
-    if (!confirm('Are you sure you want to delete this flashcard?')) return
+  const handleDeleteFlashcard = (flashcardId: number, cardName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      cardId: flashcardId,
+      cardName: cardName,
+      isLoading: false
+    })
+  }
+
+  const confirmDeleteFlashcard = async () => {
+    if (!deleteModal.cardId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
-      await FlashcardService.deleteFlashcard(flashcardId)
+      await FlashcardService.deleteFlashcard(deleteModal.cardId)
       toast.success('Flashcard deleted')
       // React Query will automatically refetch the flashcards list
     } catch (error) {
       console.error('Error deleting flashcard:', error)
       toast.error('Failed to delete flashcard')
+    } finally {
+      setDeleteModal({
+        isOpen: false,
+        cardId: null,
+        cardName: null,
+        isLoading: false
+      })
     }
   }
 
@@ -164,7 +194,7 @@ export default function FlashcardsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleDeleteFlashcard(card.id)}
+                    onClick={() => handleDeleteFlashcard(card.id, card.front_text)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -229,6 +259,17 @@ export default function FlashcardsPage() {
       <FlashcardViewModal
         card={viewingCard}
         onClose={() => setViewingCard(null)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDeleteFlashcard}
+        title="Delete Flashcard"
+        description="Are you sure you want to delete this flashcard"
+        itemName={deleteModal.cardName || undefined}
+        isLoading={deleteModal.isLoading}
       />
     </div>
   )

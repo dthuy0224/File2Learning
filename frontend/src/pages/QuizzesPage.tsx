@@ -7,10 +7,23 @@ import QuizService from '../services/quizService'
 import { useQuizzes } from '../hooks/useQuizzes'
 import QuizCard from '../components/QuizCard'
 import SelectDocumentModal from '../components/SelectDocumentModal'
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal'
+import toast from 'react-hot-toast'
 
 export default function QuizzesPage() {
   const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    quizId: number | null
+    quizName: string | null
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    quizId: null,
+    quizName: null,
+    isLoading: false
+  })
   const { data: quizzes, isLoading: quizzesLoading, error } = useQuizzes()
 
   const handleCreateQuiz = () => {
@@ -26,13 +39,33 @@ export default function QuizzesPage() {
     }
   }
 
-  const handleDeleteQuiz = async (quizId: number) => {
-    if (!confirm('Are you sure you want to delete this quiz?')) return
+  const handleDeleteQuiz = (quizId: number, quizName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      quizId: quizId,
+      quizName: quizName,
+      isLoading: false
+    })
+  }
+
+  const confirmDeleteQuiz = async () => {
+    if (!deleteModal.quizId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
-      await QuizService.deleteQuiz(quizId)
+      await QuizService.deleteQuiz(deleteModal.quizId)
+      toast.success('Quiz deleted successfully')
     } catch (error) {
       console.error('Failed to delete quiz:', error)
+      toast.error('Failed to delete quiz')
+    } finally {
+      setDeleteModal({
+        isOpen: false,
+        quizId: null,
+        quizName: null,
+        isLoading: false
+      })
     }
   }
 
@@ -125,6 +158,17 @@ export default function QuizzesPage() {
       <SelectDocumentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDeleteQuiz}
+        title="Delete Quiz"
+        description="Are you sure you want to delete this quiz"
+        itemName={deleteModal.quizName || undefined}
+        isLoading={deleteModal.isLoading}
       />
     </div>
   )

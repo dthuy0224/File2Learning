@@ -8,7 +8,7 @@ import QuizService from '@/services/quizService'
 
 interface QuizCardProps {
   quiz: Quiz
-  onDelete: (quizId: number) => void
+  onDelete: (quizId: number, quizName: string) => void
   onStart: (quizId: number) => void
 }
 
@@ -39,7 +39,7 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onDelete(quiz.id)}
+              onClick={() => onDelete(quiz.id, quiz.title)}
             >
               <Trash2 className="h-3 w-3" />
             </Button>
