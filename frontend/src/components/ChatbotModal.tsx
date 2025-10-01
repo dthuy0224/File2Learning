@@ -155,7 +155,7 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
               <div className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <p className="text-sm text-muted-foreground">AI đang suy nghĩ...</p>
+                  <p className="text-sm text-muted-foreground">AI is thinking...</p>
                 </div>
               </div>
             </div>

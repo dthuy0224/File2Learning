@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
@@ -68,3 +68,8 @@ class Document(DocumentInDBBase):
 # Properties stored in DB
 class DocumentInDB(DocumentInDBBase):
     pass
+
+
+# Properties for topic-based document creation
+class DocumentCreateFromTopic(BaseModel):
+    topic: str = Field(..., min_length=3, max_length=150, description="The topic that the user wants AI to generate content for")

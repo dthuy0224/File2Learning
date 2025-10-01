@@ -227,6 +227,12 @@ export class AIService {
     })
     return response.data
   }
+
+  // Document creation operations
+  static async createDocumentFromTopic(topic: string): Promise<Document> {
+    const response = await api.post('/v1/documents/from-topic', { topic })
+    return response.data
+  }
 }
 
 export default AIService

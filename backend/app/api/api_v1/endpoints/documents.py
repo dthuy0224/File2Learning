@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core import deps
 from app.crud import document
-from app.schemas.document import Document, DocumentCreate, DocumentUpdate
+from app.schemas.document import Document, DocumentCreate, DocumentUpdate, DocumentCreateFromTopic
 from app.schemas.user import User
 from app.utils.file_processor import FileProcessor, SecurityScanner
-from app.tasks.document_tasks import process_document_task
+from app.tasks.document_tasks import process_document_task, process_document_content
+from app.services.ai_service import ollama_service
 
 router = APIRouter()
 
@@ -215,6 +216,39 @@ def delete_document(
             print(f"Error deleting physical file: {str(e)}")
 
     return {"message": "Document deleted successfully"}
+
+
+@router.post("/from-topic", response_model=Document, status_code=201)
+async def create_document_from_topic(
+    *,
+    db: Session = Depends(get_db),
+    topic_in: DocumentCreateFromTopic,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Create a new document from a topic provided by the user, using AI.
+    """
+    # Step 1: Call AI Service to generate content
+    generation_result = await ollama_service.generate_document_from_topic(topic_in.topic)
+    if not generation_result["success"]:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI failed to generate content: {generation_result['error']}"
+        )
+
+    generated_content = generation_result["content"]
+
+    # Step 2: Create Document object in DB
+    doc_in = DocumentCreate(
+        file_name=f"AI Generated - {topic_in.topic}.txt", # Auto-generated filename
+        content=generated_content
+    )
+    document_obj = document.create_with_owner(db=db, obj_in=doc_in, owner_id=current_user.id)
+
+    # Step 3: Trigger background task for processing (summary, analysis, etc.)
+    process_document_content.delay(document_obj.id)
+
+    return document_obj
 
 
 @router.get("/{document_id}/status")

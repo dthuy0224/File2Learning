@@ -309,7 +309,7 @@ class OllamaService:
             chat_history = []
 
         try:
-            # Giới hạn độ dài context để tránh quá tải
+            # Limit context length to avoid overload
             max_input_length = 6000
             if len(text_content) > max_input_length:
                 text_content = text_content[:max_input_length] + "..."
@@ -398,6 +398,46 @@ Document:
             })
 
         return questions
+
+    async def generate_document_from_topic(self, topic: str) -> Dict:
+        """
+        Generate a reading passage content from a topic provided by the user.
+        """
+        try:
+            prompt = self._build_topic_generation_prompt(topic)
+
+            response = self.client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.default_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.7}
+                }
+            )
+            response.raise_for_status() # Raise error if status code is not 2xx
+
+            result = response.json()
+            generated_content = result.get("response", "").strip()
+
+            if not generated_content:
+                raise Exception("AI did not return any content.")
+
+            return {"success": True, "content": generated_content}
+
+        except Exception as e:
+            logger.error(f"Error generating document from topic '{topic}': {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    def _build_topic_generation_prompt(self, topic: str) -> str:
+        """Build prompt to request AI to write an article."""
+        return f"""
+        You are an expert in writing educational content in English.
+        Please write a complete English reading passage (approximately 400-500 words) on the following topic: "{topic}".
+
+        The article should have a clear structure, use rich vocabulary and be suitable for English learners at intermediate level (B1-B2).
+        Return only the article content, without any greetings or comments.
+        """
 
 
 # Global instance
