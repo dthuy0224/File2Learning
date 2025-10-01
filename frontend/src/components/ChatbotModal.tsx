@@ -47,13 +47,13 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
 
     try {
       // Get conversation history (last 5 messages for context)
-      const conversationHistory = messages.slice(-5);
+      const history = messages.slice(-5);
 
       // Call AI service
       const response: ChatResponse = await AIService.chatWithDocument(
         documentId,
         userMessage.content,
-        conversationHistory
+        history
       );
 
       if (response.success) {
@@ -64,11 +64,11 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {
-        toast.error(response.error || 'Failed to get AI response');
+        toast.error(response.message || response.error || 'Failed to get AI response');
         // Add error message to chat
         const errorMessage: ChatMessage = {
           role: 'assistant',
-          content: response.error || 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn ngay bây giờ.',
+          content: response.message || response.error || 'Sorry, I cannot answer your question right now.',
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -79,7 +79,7 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
       // Add error message to chat
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: 'Xin lỗi, có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại.',
+        content: 'Sorry, an error occurred while sending the message. Please try again.',
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -103,8 +103,8 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Chat với AI</h2>
-            <p className="text-sm text-muted-foreground">Hỏi về: {documentTitle}</p>
+            <h2 className="text-lg font-semibold">Chat with AI</h2>
+            <p className="text-sm text-muted-foreground">Ask about: {documentTitle}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             ✕
@@ -115,8 +115,8 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              <p>Bắt đầu cuộc trò chuyện bằng cách hỏi câu hỏi về tài liệu!</p>
-              <p className="text-sm mt-2">Ví dụ: "Tóm tắt nội dung chính của tài liệu này?"</p>
+              <p>Start a conversation by asking questions about the document!</p>
+              <p className="text-sm mt-2">Example: "Summarize the main content of this document?"</p>
             </div>
           ) : (
             messages.map((message, index) => (
@@ -163,7 +163,7 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Nhập câu hỏi của bạn..."
+              placeholder="Enter your question..."
               disabled={isLoading}
               className="flex-1"
             />
@@ -171,11 +171,11 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isLoading}
             >
-              Gửi
+              Send
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Nhấn Enter để gửi, Shift+Enter để xuống dòng
+            Press Enter to send, Shift+Enter for new line
           </p>
         </div>
       </Card>

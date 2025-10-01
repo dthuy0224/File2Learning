@@ -274,10 +274,10 @@ async def chat_with_document(
 
     try:
         # Generate chat response using Ollama
-        result = await ollama_service.get_chat_response(
-            document_content=document_obj.content,
+        result = await ollama_service.generate_chat_response(
+            text_content=document_obj.content,
             user_query=chat_request.query,
-            conversation_history=chat_request.conversation_history
+            chat_history=chat_request.conversation_history or []
         )
 
         if not result["success"]:

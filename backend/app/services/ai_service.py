@@ -301,26 +301,20 @@ class OllamaService:
 
         return flashcards
 
-    async def get_chat_response(self, document_content: str, user_query: str, conversation_history: Optional[List[Dict]] = None) -> Dict:
+    async def generate_chat_response(self, text_content: str, user_query: str, chat_history: List[Dict] = None) -> Dict:
         """
-        Generate chat response based on document content and user query
-
-        Args:
-            document_content: The document text to base the response on
-            user_query: The user's question
-            conversation_history: Optional previous conversation context
-
-        Returns:
-            Dict containing the AI response and metadata
+        Generate a chat response based on document content and user query.
         """
+        if chat_history is None:
+            chat_history = []
+
         try:
-            # Truncate document content if too long for context window
-            max_content_length = 3000  # Conservative limit for chat context
-            if len(document_content) > max_content_length:
-                document_content = document_content[:max_content_length] + "..."
+            # Giới hạn độ dài context để tránh quá tải
+            max_input_length = 6000
+            if len(text_content) > max_input_length:
+                text_content = text_content[:max_input_length] + "..."
 
-            # Build context-aware prompt
-            prompt = self._build_chat_prompt(document_content, user_query, conversation_history)
+            prompt = self._build_chat_prompt(text_content, user_query, chat_history)
 
             response = self.client.post(
                 f"{self.base_url}/api/generate",
@@ -354,22 +348,22 @@ class OllamaService:
             return {
                 "success": False,
                 "error": str(e),
-                "answer": "Xin lỗi, tôi không thể trả lời câu hỏi của bạn ngay bây giờ. Vui lòng thử lại sau."
+                "answer": "Sorry, I am unable to answer your question right now. Please try again later."
             }
 
     def _build_chat_prompt(self, document_content: str, user_query: str, conversation_history: Optional[List[Dict]] = None) -> str:
         """Build prompt for chat response based on document context"""
 
         # Start with system instruction
-        system_prompt = """Bạn là một trợ lý AI hữu ích chuyên trả lời câu hỏi dựa trên nội dung tài liệu được cung cấp.
+        system_prompt = """You are a helpful AI assistant specialized in answering questions based on provided document content.
 
-Quy tắc:
-1. Chỉ trả lời dựa trên thông tin có trong tài liệu được cung cấp
-2. Nếu câu hỏi không liên quan đến tài liệu, hãy lịch sự từ chối trả lời
-3. Giữ câu trả lời ngắn gọn, rõ ràng và hữu ích
-4. Sử dụng tiếng Việt để trả lời
+Rules:
+1. Answer only based on information available in the provided document
+2. If the question is not related to the document, politely decline to answer
+3. Keep responses concise, clear, and helpful
+4. Respond in English for better document understanding, but understand Vietnamese user queries
 
-Tài liệu:
+Document:
 """
 
         # Add document content
@@ -377,14 +371,14 @@ Tài liệu:
 
         # Add conversation history if available
         if conversation_history:
-            full_prompt += "\n\nLịch sử cuộc trò chuyện:\n"
+            full_prompt += "\n\nChat History:\n"
             for msg in conversation_history[-5:]:  # Last 5 messages for context
-                role = "Người dùng" if msg.get("role") == "user" else "AI"
+                role = "User" if msg.get("role") == "user" else "AI"
                 content = msg.get("content", "")
                 full_prompt += f"{role}: {content}\n"
 
         # Add current user query
-        full_prompt += f"\nCâu hỏi của người dùng: {user_query}\n\nTrả lời:"
+        full_prompt += f"\nUser query: {user_query}\n\nAnswer:"
 
         return full_prompt
 

@@ -219,14 +219,11 @@ export class AIService {
   static async chatWithDocument(
     documentId: number,
     query: string,
-    conversationHistory?: ChatMessage[]
+    history: ChatMessage[] = []
   ): Promise<ChatResponse> {
     const response = await api.post(`/v1/ai/${documentId}/chat`, {
       query,
-      conversation_history: conversationHistory?.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      history,
     })
     return response.data
   }
