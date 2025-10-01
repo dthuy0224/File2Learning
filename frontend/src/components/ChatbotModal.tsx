@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
+import ReactMarkdown from 'react-markdown';
 import AIService, { ChatMessage, ChatResponse } from '../services/aiService';
 import toast from 'react-hot-toast';
 
@@ -131,7 +132,13 @@ export default function ChatbotModal({ isOpen, onClose, documentId, documentTitl
                       : 'bg-muted'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'assistant' ? (
+                    <div className="text-sm prose prose-sm max-w-none">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  )}
                   {message.timestamp && (
                     <p className={`text-xs mt-2 ${
                       message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
