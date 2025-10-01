@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
-import FlashcardService, { Flashcard } from '../services/flashcardService'
-import { useFlashcards } from '../hooks/useFlashcards'
+import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit, Layers } from 'lucide-react'
+import FlashcardService, { Flashcard, FlashcardSet } from '../services/flashcardService'
 import AddFlashcardModal from '../components/AddFlashcardModal'
 import PracticeModal from '../components/PracticeModal'
 import FlashcardViewModal from '../components/FlashcardViewModal'
@@ -28,13 +28,17 @@ export default function FlashcardsPage() {
     isLoading: false
   })
 
-  // Use React Query hooks instead of local state and useEffect
-  const { data: flashcards = [], isLoading: loading, error } = useFlashcards()
+  // Use React Query hooks for flashcard sets
+  const { data: sets, isLoading: loading, error } = useQuery({
+    queryKey: ['flashcardSets'],
+    queryFn: () => FlashcardService.getFlashcardSets()
+  })
 
-  // Calculate stats from flashcards using React Query data
-  const stats = flashcards.length > 0 ? FlashcardService.getFlashcardStatsFromList(flashcards) : {
-    total_cards: 0,
-    due_today: 0,
+  // Calculate total stats across all sets
+  const totalCards = sets?.reduce((sum, set) => sum + set.card_count, 0) || 0
+  const stats = {
+    total_cards: totalCards,
+    due_today: 0, // Will be calculated when needed
     due_this_week: 0,
     mastered: 0,
     learning: 0,
@@ -45,7 +49,6 @@ export default function FlashcardsPage() {
   const handleCreateFlashcard = () => {
     setIsModalOpen(true)
   }
-
 
   const handleDeleteFlashcard = (flashcardId: number, cardName: string) => {
     setDeleteModal({
@@ -76,6 +79,27 @@ export default function FlashcardsPage() {
         isLoading: false
       })
     }
+  }
+
+  // Component for displaying flashcard sets
+  const FlashcardSetCard = ({ set }: { set: FlashcardSet }) => {
+    const navigate = useNavigate()
+    return (
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/flashcard-sets/${set.id}`)}>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Layers className="text-indigo-500" />
+            <span className="truncate">{set.title || set.original_filename}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">{set.card_count} cards</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Created on: {new Date(set.created_at).toLocaleDateString()}
+          </p>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (loading) {
@@ -121,7 +145,7 @@ export default function FlashcardsPage() {
         <CardHeader>
           <CardTitle className="text-white">Ready for Review</CardTitle>
           <CardDescription className="text-blue-100">
-            You have {stats.due_today} flashcards due for review
+            You have {stats.total_cards} flashcards across {sets?.length || 0} sets
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,82 +196,36 @@ export default function FlashcardsPage() {
         </Card>
       </div>
 
-      {/* Flashcards Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {flashcards.slice(0, 6).map((card) => (
-          <Card key={card.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg truncate">{card.front_text}</CardTitle>
+      {/* Flashcard Sets Grid */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">Your Flashcard Sets</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading ? (
+            <p>Loading sets...</p>
+          ) : sets?.length ? (
+            sets.map((set) => (
+              <FlashcardSetCard key={set.id} set={set} />
+            ))
+          ) : (
+            <Card className="col-span-full">
+              <CardContent className="pt-6">
+                <div className="text-center text-gray-500">
+                  <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>You haven't created any flashcard sets from documents yet.</p>
+                  <p className="text-sm mt-2">Upload a document and generate flashcards to get started!</p>
                 </div>
-                <div className="flex space-x-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setViewingCard(card)}
-                    title="Quick view"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteFlashcard(card.id, card.front_text)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="line-clamp-2">
-                {card.back_text}
-              </CardDescription>
-              <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
-                <span>Difficulty: {card.difficulty_level}</span>
-                <span>Reps: {card.repetitions}</span>
-              </div>
-              {card.next_review_date && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Next review: {new Date(card.next_review_date).toLocaleDateString()}
-                </div>
-              )}
-              <div className="mt-4 flex space-x-2">
-                <Button size="sm" variant="outline" onClick={() => setViewingCard(card)}>
-                  Review
-                </Button>
-                <Button size="sm" onClick={() => setPracticingCard(card)}>
-                  Practice
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
-      {flashcards.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-gray-500">
-              <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No flashcards yet. Create your first flashcard to get started!</p>
-              <Button className="mt-4" onClick={handleCreateFlashcard}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Flashcard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Practice Modal */}
-      <PracticeModal
+      {/* Practice Modal - Temporarily disabled until we implement set-based practice */}
+      {/* <PracticeModal
         card={practicingCard}
         allCards={flashcards}
         onClose={() => setPracticingCard(null)}
-      />
+      /> */}
 
       {/* Add Flashcard Modal */}
       <AddFlashcardModal
@@ -255,11 +233,11 @@ export default function FlashcardsPage() {
         onClose={() => setIsModalOpen(false)}
       />
 
-      {/* Flashcard View Modal */}
-      <FlashcardViewModal
+      {/* Flashcard View Modal - Temporarily disabled until we implement set-based view */}
+      {/* <FlashcardViewModal
         card={viewingCard}
         onClose={() => setViewingCard(null)}
-      />
+      /> */}
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

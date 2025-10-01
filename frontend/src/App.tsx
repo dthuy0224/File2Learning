@@ -19,6 +19,7 @@ import DocumentDetailPage from './pages/DocumentDetailPage'
 import ProgressPage from './pages/ProgressPage'
 import QuickQuizPage from './pages/QuickQuizPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
+import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
 
 // Components
 import Layout from './components/Layout'
@@ -163,6 +164,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <FlashcardReviewPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/flashcard-sets/:setId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FlashcardSetDetailPage />
               </Layout>
             </ProtectedRoute>
           }

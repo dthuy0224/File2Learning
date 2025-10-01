@@ -23,6 +23,14 @@ export interface Flashcard {
   updated_at: string
 }
 
+export interface FlashcardSet {
+  id: number
+  title?: string
+  original_filename: string
+  card_count: number
+  created_at: string
+}
+
 export interface FlashcardCreate {
   front_text: string
   back_text: string
@@ -102,6 +110,18 @@ export class FlashcardService {
       flashcards.map(flashcardData => this.createFlashcard(flashcardData))
     )
     return results
+  }
+
+  // Get all flashcard sets (documents with flashcards)
+  static async getFlashcardSets(): Promise<FlashcardSet[]> {
+    const response = await api.get('/v1/flashcard-sets/')
+    return response.data
+  }
+
+  // Get all flashcards in a specific set
+  static async getFlashcardsInSet(setId: number): Promise<Flashcard[]> {
+    const response = await api.get(`/v1/flashcard-sets/${setId}/cards`)
+    return response.data
   }
 
   // Helper method to get flashcard statistics from the list
