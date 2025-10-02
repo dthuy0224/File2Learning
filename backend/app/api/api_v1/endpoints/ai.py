@@ -62,7 +62,7 @@ async def generate_quiz_from_document(
             "message": "Quiz generated successfully",
             "quiz": result["quiz"],
             "document_id": document_id,
-            "model_used": result["model_used"],
+            "ai_model": result["ai_model"],
             "generated_by": "ollama"
         }
 
@@ -115,7 +115,7 @@ async def generate_flashcards_from_document(
             "message": "Flashcards generated successfully",
             "flashcards": result["flashcards"],
             "document_id": document_id,
-            "model_used": result["model_used"]
+            "ai_model": result["ai_model"]
         }
 
     except Exception as e:
@@ -171,7 +171,7 @@ async def generate_summary_from_document(
             "message": "Summary generated successfully",
             "summary": result["summary"],
             "document_id": document_id,
-            "model_used": result["model_used"],
+            "ai_model": result["ai_model"],
             "original_length": result["original_length"],
             "summary_length": result["summary_length"]
         }
@@ -234,7 +234,7 @@ async def test_ollama_connection() -> Any:
             return {
                 "status": "connected",
                 "message": "Ollama is working correctly",
-                "model": test_result.get("model_used", "unknown")
+                "model": test_result.get("ai_model", "unknown")
             }
         else:
             return {
@@ -293,7 +293,7 @@ async def chat_with_document(
             "message": "Chat response generated successfully",
             "answer": result["answer"],
             "document_id": document_id,
-            "model_used": result["model_used"],
+            "ai_model": result["ai_model"],
             "success": True
         }
 

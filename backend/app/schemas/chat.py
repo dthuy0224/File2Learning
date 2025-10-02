@@ -9,5 +9,5 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     document_id: int
-    model_used: str
+    ai_model: str
     conversation_id: Optional[str] = None 

@@ -93,7 +93,7 @@ export interface ChatMessage {
 export interface ChatResponse {
   answer: string
   document_id: number
-  model_used: string
+  ai_model: string
   success: boolean
   message?: string
   error?: string
