@@ -10,7 +10,7 @@ from app.crud import document
 from app.schemas.document import Document, DocumentCreate, DocumentUpdate, DocumentCreateFromTopic
 from app.schemas.user import User
 from app.utils.file_processor import FileProcessor, SecurityScanner
-from app.tasks.document_tasks import process_document_task, process_document_content
+from app.tasks.document_tasks import process_document_task
 from app.services.ai_service import ollama_service
 
 router = APIRouter()
@@ -240,13 +240,24 @@ async def create_document_from_topic(
 
     # Step 2: Create Document object in DB
     doc_in = DocumentCreate(
-        file_name=f"AI Generated - {topic_in.topic}.txt", # Auto-generated filename
+        filename=f"AI Generated - {topic_in.topic}.txt",
+        original_filename=f"AI Generated - {topic_in.topic}.txt", # Thêm dòng này
+        file_path=f"uploads/ai_generated/{topic_in.topic}.txt", # Thêm đường dẫn giả
+        file_size=len(generated_content), # Thêm kích thước file
+        document_type="txt", # Thêm loại file
         content=generated_content
     )
     document_obj = document.create_with_owner(db=db, obj_in=doc_in, owner_id=current_user.id)
 
-    # Step 3: Trigger background task for processing (summary, analysis, etc.)
-    process_document_content.delay(document_obj.id)
+    # Step 3: Update document status to completed since we already have the content
+    # No need for background processing since content is already generated
+    from datetime import datetime
+    update_data = DocumentUpdate(
+        processing_status='completed',
+        processed_at=datetime.utcnow(),
+        word_count=len(generated_content.split())
+    )
+    document.update(db=db, db_obj=document_obj, obj_in=update_data)
 
     return document_obj
 
