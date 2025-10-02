@@ -20,6 +20,7 @@ class DocumentCreate(DocumentBase):
     document_type: str
     word_count: Optional[int] = 0
     processing_status: str = 'pending'
+    content: Optional[str] = None
     
 
 # Properties to receive on update
