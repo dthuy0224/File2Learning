@@ -39,6 +39,7 @@ export interface Document {
   created_at: string
   processed_at?: string
   content?: string
+  summary?: string
   difficulty_level?: string
   language_detected?: string
 }
