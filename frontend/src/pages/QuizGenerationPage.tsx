@@ -110,7 +110,7 @@ export default function QuizGenerationPage() {
       const quizData = {
         title: `${document.title || document.original_filename} - Quiz`,
         description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
-        quiz_type: quizType === 'mcq' ? 'multiple_choice' : quizType === 'fill_blank' ? 'fill_blank' : 'mixed',
+        quiz_type: 'mixed',
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
         questions: quiz.map((q) => ({
