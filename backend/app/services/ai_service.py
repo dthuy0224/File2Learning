@@ -59,7 +59,7 @@ class OllamaService:
             return {
                 "success": True,
                 "quiz": quiz_data,
-                "model_used": self.default_model,
+                "ai_model": self.default_model,
                 "text_length": len(text_content)
             }
 
@@ -106,7 +106,7 @@ class OllamaService:
             return {
                 "success": True,
                 "flashcards": flashcards,
-                "model_used": self.default_model
+                "ai_model": self.default_model
             }
 
         except Exception as e:
@@ -338,7 +338,7 @@ class OllamaService:
             return {
                 "success": True,
                 "answer": ai_response,
-                "model_used": self.default_model,
+                "ai_model": self.default_model,
                 "document_length": len(document_content),
                 "query_length": len(user_query)
             }
