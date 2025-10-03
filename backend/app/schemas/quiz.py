@@ -82,7 +82,7 @@ class QuizAttempt(BaseModel):
     id: int
     quiz_id: int
     user_id: int
-    answers: Dict[str, Any]
+    answers: Dict[int, Dict[str, Any]]  # question_id -> detailed answer info
     score: int
     max_score: int
     percentage: int
@@ -90,6 +90,6 @@ class QuizAttempt(BaseModel):
     is_completed: bool
     started_at: datetime
     completed_at: Optional[datetime]
-    
+
     class Config:
         from_attributes = True

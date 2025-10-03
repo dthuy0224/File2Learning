@@ -1,14 +1,21 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuthStore } from '../store/authStore'
-import { BookOpen, FileText, CreditCard, Brain, TrendingUp } from 'lucide-react'
+import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2 } from 'lucide-react'
+import { useUserStats } from '../hooks/useProgress'
+import { useRecentActivities } from '../hooks/useProgress'
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
 
+  // Use React Query hooks to get real data
+  const { data: userStats, isLoading: statsLoading } = useUserStats(30)
+  const { data: recentActivities = [] } = useRecentActivities(5)
+
+  // Transform user stats into dashboard format
   const stats = [
     {
       title: 'Documents',
-      value: '12',
+      value: userStats?.documents_processed?.toString() || '0',
       description: 'Documents processed',
       icon: FileText,
       color: 'text-blue-600',
@@ -16,15 +23,15 @@ export default function DashboardPage() {
     },
     {
       title: 'Flashcards',
-      value: '248',
-      description: 'Cards created',
+      value: userStats?.words_mastered?.toString() || '0',
+      description: 'Cards mastered',
       icon: CreditCard,
       color: 'text-green-600',
       bg: 'bg-green-50'
     },
     {
       title: 'Quizzes',
-      value: '18',
+      value: userStats?.total_quizzes_completed?.toString() || '0',
       description: 'Quizzes completed',
       icon: Brain,
       color: 'text-purple-600',
@@ -32,7 +39,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Progress',
-      value: '78%',
+      value: `${userStats?.avg_accuracy?.toFixed(0) || '0'}%`,
       description: 'Overall accuracy',
       icon: TrendingUp,
       color: 'text-orange-600',
@@ -61,26 +68,32 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+        {statsLoading ? (
+          <div className="col-span-full flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          stats.map((stat, index) => (
+            <Card key={index} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className={`p-2 rounded-lg ${stat.bg}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                  <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
                 </div>
-                <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                {stat.title}
-              </CardTitle>
-              <CardDescription className="mt-1">
-                {stat.description}
-              </CardDescription>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  {stat.title}
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  {stat.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -91,31 +104,45 @@ export default function DashboardPage() {
             <CardDescription>Your latest learning activities</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Completed "Business English" quiz</p>
-                  <p className="text-xs text-gray-500">2 hours ago</p>
-                </div>
-                <span className="text-sm font-semibold text-green-600">92%</span>
+            {recentActivities.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivities.slice(0, 5).map((activity) => {
+                  const getActivityColor = (type: string) => {
+                    switch (type) {
+                      case 'quiz': return 'bg-blue-500'
+                      case 'flashcard': return 'bg-green-500'
+                      case 'document': return 'bg-purple-500'
+                      default: return 'bg-gray-500'
+                    }
+                  }
+
+                  const getScoreDisplay = (activity: any) => {
+                    if (activity.type === 'quiz' && activity.score) {
+                      return <span className="text-sm font-semibold text-green-600">{activity.score}</span>
+                    } else if (activity.type === 'flashcard') {
+                      return <span className="text-sm font-semibold text-blue-600">Reviewed</span>
+                    }
+                    return null
+                  }
+
+                  return (
+                    <div key={activity.id} className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${getActivityColor(activity.type)}`}></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{activity.time_ago}</p>
+                      </div>
+                      {getScoreDisplay(activity)}
+                    </div>
+                  )
+                })}
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Reviewed 15 flashcards</p>
-                  <p className="text-xs text-gray-500">5 hours ago</p>
-                </div>
-                <span className="text-sm font-semibold text-blue-600">15/15</span>
+            ) : (
+              <div className="text-center text-gray-500 py-4">
+                <p className="text-sm">No recent activities</p>
+                <p className="text-xs">Start learning to see your activities here</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Uploaded "IELTS Reading" document</p>
-                  <p className="text-xs text-gray-500">1 day ago</p>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

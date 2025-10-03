@@ -190,7 +190,7 @@ def delete_document(
     """
     Delete a document and its associated file.
     """
-    document_obj = document.get(db=db, id=document_id)
+    document_obj = document.remove(db=db, id=document_id)
     if not document_obj:
         raise HTTPException(status_code=404, detail="Document not found")
     if document_obj.owner_id != current_user.id:
@@ -214,8 +214,6 @@ def delete_document(
             # Database record deletion is more important
             print(f"Error deleting physical file: {str(e)}")
 
-    # Delete document record from database
-    document.remove(db=db, id=document_id)
     return {"message": "Document deleted successfully"}
 
 

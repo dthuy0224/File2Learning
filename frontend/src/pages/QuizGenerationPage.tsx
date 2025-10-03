@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Loader2, ArrowLeft, FileText, Brain, CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import AIService, { QuizQuestion, QuizResponse } from '../services/aiService'
+import AIService, { QuizQuestionExtended, QuizResponse } from '../services/aiService'
+import QuizService from '../services/quizService'
 
 export default function QuizGenerationPage() {
   const { documentId } = useParams<{ documentId: string }>()
@@ -13,8 +14,10 @@ export default function QuizGenerationPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [document, setDocument] = useState<any>(null)
-  const [quiz, setQuiz] = useState<QuizQuestion[]>([])
+  const [quiz, setQuiz] = useState<QuizQuestionExtended[]>([])
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({})
+  const [savedQuiz, setSavedQuiz] = useState<any>(null)
+  const [savingQuiz, setSavingQuiz] = useState(false)
 
   // Quiz generation settings
   const [quizType, setQuizType] = useState<'mcq' | 'fill_blank' | 'mixed'>('mixed')
@@ -49,7 +52,24 @@ export default function QuizGenerationPage() {
         numQuestions
       )
 
-      setQuiz(response.quiz)
+      
+      const formattedQuiz: QuizQuestionExtended[] = response.quiz.map((q, index) => ({
+        
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        question_type: q.question_type,
+        
+        id: index, // Temporary ID for frontend display
+        question_text: q.question,
+        explanation: undefined, 
+        points: 1,
+        order_index: index + 1,
+        quiz_id: 0, 
+        created_at: new Date().toISOString()
+      }))
+
+      setQuiz(formattedQuiz)
       toast.success(`Generated ${response.quiz.length} quiz questions!`)
     } catch (error: any) {
       console.error('Error generating quiz:', error)
@@ -78,6 +98,44 @@ export default function QuizGenerationPage() {
     toast.success(`Quiz completed! Score: ${correct}/${quiz.length} (${percentage}%)`)
   }
 
+  const saveQuiz = async () => {
+    if (quiz.length === 0) {
+      toast.error('No quiz to save');
+      return;
+    }
+
+    try {
+      setSavingQuiz(true);
+
+      const quizData = {
+        title: `${document.title || document.original_filename} - Quiz`,
+        description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
+        quiz_type: quizType === 'mcq' ? 'multiple_choice' : quizType === 'fill_blank' ? 'fill_blank' : 'mixed',
+        difficulty_level: 'medium',
+        document_id: parseInt(documentId!),
+        questions: quiz.map((q) => ({
+          question: q.question_text, // Đổi từ question_text thành question để khớp với createQuizFromAI
+          options: q.options,
+          correct_answer: q.correct_answer,
+          question_type: q.question_type,
+          explanation: q.explanation,
+          points: 1
+          // Không cần order_index vì createQuizFromAI sẽ tự động tạo
+        }))
+      };
+
+      // Gọi đến service để tạo quiz
+      const savedQuizData = await QuizService.createQuizFromAI(quizData as any);
+      setSavedQuiz(savedQuizData);
+      toast.success('Quiz saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving quiz:', error);
+      toast.error(error.response?.data?.detail?.[0]?.msg || 'Failed to save quiz.');
+    } finally {
+      setSavingQuiz(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -103,7 +161,7 @@ export default function QuizGenerationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={() => navigate('/documents')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -117,7 +175,7 @@ export default function QuizGenerationPage() {
         </div>
       </div>
 
-      {/* Document Info */}
+      
       <Card>
         <CardHeader>
           <div className="flex items-center space-x-3">
@@ -132,7 +190,7 @@ export default function QuizGenerationPage() {
         </CardHeader>
       </Card>
 
-      {/* Quiz Generation Settings */}
+                        
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -211,9 +269,9 @@ export default function QuizGenerationPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {quiz.map((question, index) => (
-              <div key={index} className="border-b border-gray-200 pb-6 last:border-b-0">
+              <div key={question.id} className="border-b border-gray-200 pb-6 last:border-b-0">
                 <h4 className="font-medium text-gray-900 mb-3">
-                  {index + 1}. {question.question}
+                  {index + 1}. {question.question_text}
                 </h4>
 
                 {question.question_type === 'multiple_choice' && question.options ? (
@@ -222,10 +280,10 @@ export default function QuizGenerationPage() {
                       <label key={optionIndex} className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="radio"
-                          name={`question-${index}`}
-                          value={String.fromCharCode(65 + optionIndex)}
-                          checked={userAnswers[index] === String.fromCharCode(65 + optionIndex)}
-                          onChange={(e) => handleAnswerSelect(index, e.target.value)}
+                          name={`question-${question.id}`}
+                          value={option}
+                          checked={userAnswers[question.id] === option}
+                          onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
                           className="text-blue-600"
                         />
                         <span className="text-gray-700">
@@ -238,8 +296,8 @@ export default function QuizGenerationPage() {
                   <div>
                     <input
                       type="text"
-                      value={userAnswers[index] || ''}
-                      onChange={(e) => handleAnswerSelect(index, e.target.value)}
+                      value={userAnswers[question.id] || ''}
+                      onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
                       placeholder="Type your answer here..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -248,11 +306,47 @@ export default function QuizGenerationPage() {
               </div>
             ))}
 
-            <div className="flex justify-center">
-              <Button onClick={checkAnswers} size="lg">
-                Check Answers
+            <div className="flex justify-center space-x-4">
+              <Button onClick={checkAnswers} size="lg" variant="outline">
+                Check Answers (Preview)
+              </Button>
+              <Button onClick={saveQuiz} disabled={savingQuiz || savedQuiz} size="lg">
+                {savingQuiz ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : savedQuiz ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Quiz Saved
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Save Quiz
+                  </>
+                )}
               </Button>
             </div>
+
+            {savedQuiz && (
+              <div className="text-center space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <p className="text-green-800 font-medium">Quiz saved successfully!</p>
+                  <p className="text-green-600 text-sm">You can now take this quiz anytime from your quiz list.</p>
+                </div>
+                <div className="flex justify-center space-x-4">
+                  <Button onClick={() => navigate(`/quizzes/${savedQuiz.id}/take`)} size="lg">
+                    Start Quiz Now
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/quizzes')} size="lg">
+                    View All Quizzes
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

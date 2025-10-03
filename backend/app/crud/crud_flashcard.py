@@ -50,7 +50,7 @@ class CRUDFlashcard(CRUDBase[Flashcard, FlashcardCreate, FlashcardUpdate]):
         self, db: Session, *, obj_in: FlashcardCreate, owner_id: int
     ) -> Flashcard:
         obj_in_data = obj_in.dict()
-        db_obj = self.model(**obj_in_data, owner_id=owner_id)
+        db_obj = self.model(**obj_in_data, owner_id=owner_id, next_review_date=datetime.utcnow())
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

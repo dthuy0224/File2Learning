@@ -11,8 +11,15 @@ import DocumentsPage from './pages/DocumentsPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import QuizzesPage from './pages/QuizzesPage'
 import QuizGenerationPage from './pages/QuizGenerationPage'
+import QuizTakingPage from './pages/QuizTakingPage'
+import QuizResultPage from './pages/QuizResultPage'
+import QuizEditPage from './pages/QuizEditPage'
 import FlashcardGenerationPage from './pages/FlashcardGenerationPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
+import ProgressPage from './pages/ProgressPage'
+import QuickQuizPage from './pages/QuickQuizPage'
+import FlashcardReviewPage from './pages/FlashcardReviewPage'
+import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
 
 // Components
 import Layout from './components/Layout'
@@ -85,6 +92,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/progress"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProgressPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* AI Generation Routes */}
         <Route
@@ -103,6 +120,70 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <FlashcardGenerationPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Quiz Taking Routes */}
+        <Route
+          path="/quizzes/:quizId/take"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizTakingPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quizzes/:quizId/edit"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizEditPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/attempts/:attemptId/results"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuizResultPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Review and Quick Quiz Routes */}
+        <Route
+          path="/flashcards/review"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FlashcardReviewPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/flashcard-sets/:setId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FlashcardSetDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quizzes/quick"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <QuickQuizPage />
               </Layout>
             </ProtectedRoute>
           }

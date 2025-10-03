@@ -8,6 +8,17 @@ export interface QuizQuestion {
   question_type: 'multiple_choice' | 'fill_blank'
 }
 
+// Extended interface for frontend use with additional fields
+export interface QuizQuestionExtended extends QuizQuestion {
+  id: number
+  question_text: string
+  explanation?: string
+  points: number
+  order_index: number
+  quiz_id: number
+  created_at: string
+}
+
 export interface Flashcard {
   front_text: string
   back_text: string
@@ -166,6 +177,27 @@ export class AIService {
   static async deleteDocument(documentId: number): Promise<{message: string}> {
     const response = await api.delete(`/v1/documents/${documentId}`)
     return response.data
+  }
+
+  // Quiz operations
+  static async saveQuiz(quizData: {
+    title: string
+    description?: string
+    quiz_type: string
+    difficulty_level?: string
+    document_id?: number
+    questions: {
+      question: string
+      options?: string[]
+      correct_answer: string
+      question_type: 'multiple_choice' | 'fill_blank' | 'true_false'
+      explanation?: string
+      points?: number
+    }[]
+  }): Promise<any> {
+    // Use the quiz service to create the quiz
+    const { QuizService } = await import('./quizService')
+    return QuizService.createQuizFromAI(quizData)
   }
 }
 

@@ -195,6 +195,28 @@ export default function DocumentDetailPage() {
             </div>
           )}
 
+          {/* Document Summary */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">AI Summary</h3>
+            {document.summary ? (
+              <div className="p-4 bg-gray-50 rounded-lg border">
+                <p className="text-sm text-gray-800">{document.summary}</p>
+              </div>
+            ) : (
+              <div className="p-4 bg-yellow-50 rounded-lg border text-center">
+                <p className="text-sm text-yellow-800">No summary available for this document yet.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  // onClick={handleGenerateSummary} // Bạn sẽ cần viết hàm này
+                >
+                  Generate Summary with AI
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Actions */}
           <div className="flex space-x-2 pt-4">
             {document.processing_status === 'completed' && (

@@ -1,103 +1,124 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit } from 'lucide-react'
-import FlashcardService, { Flashcard } from '../services/flashcardService'
+import { CreditCard, Plus, RotateCcw, Loader2, Trash2, Edit, Layers } from 'lucide-react'
+import FlashcardService, { Flashcard, FlashcardSet } from '../services/flashcardService'
+import AddFlashcardModal from '../components/AddFlashcardModal'
+import PracticeModal from '../components/PracticeModal'
+import FlashcardViewModal from '../components/FlashcardViewModal'
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal'
 import toast from 'react-hot-toast'
 
 export default function FlashcardsPage() {
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([])
-  const [dueFlashcards, setDueFlashcards] = useState<Flashcard[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [stats, setStats] = useState({
-    total_cards: 0,
-    due_today: 0,
+  const navigate = useNavigate()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [practicingCard, setPracticingCard] = useState<Flashcard | null>(null)
+  const [viewingCard, setViewingCard] = useState<Flashcard | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    cardId: number | null
+    cardName: string | null
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    cardId: null,
+    cardName: null,
+    isLoading: false
+  })
+
+  // Use React Query hooks for flashcard sets
+  const { data: sets, isLoading: loading, error } = useQuery({
+    queryKey: ['flashcardSets'],
+    queryFn: () => FlashcardService.getFlashcardSets()
+  })
+
+  // Calculate total stats across all sets
+  const totalCards = sets?.reduce((sum, set) => sum + set.card_count, 0) || 0
+  const stats = {
+    total_cards: totalCards,
+    due_today: 0, // Will be calculated when needed
     due_this_week: 0,
     mastered: 0,
     learning: 0,
     new: 0
-  })
-
-  useEffect(() => {
-    loadFlashcards()
-  }, [])
-
-  const loadFlashcards = async () => {
-    try {
-      setLoading(true)
-      const [allCards, dueCards] = await Promise.all([
-        FlashcardService.getFlashcards(),
-        FlashcardService.getDueFlashcards()
-      ])
-
-      setFlashcards(allCards)
-      setDueFlashcards(dueCards)
-
-      // Calculate stats from flashcards
-      const calculatedStats = FlashcardService.getFlashcardStatsFromList(allCards)
-      setStats(calculatedStats)
-    } catch (error) {
-      console.error('Error loading flashcards:', error)
-      toast.error('Failed to load flashcards')
-    } finally {
-      setLoading(false)
-    }
   }
 
-  const handleCreateFlashcard = async () => {
-    try {
-      setCreating(true)
-      // Example flashcard creation - in real app this would come from a form
-      const newFlashcard = await FlashcardService.createFlashcard({
-        front_text: 'Example Word',
-        back_text: 'Definition of example word',
-        difficulty_level: 'medium'
-      })
-
-      setFlashcards(prev => [newFlashcard, ...prev])
-      toast.success('Flashcard created successfully')
-    } catch (error) {
-      console.error('Error creating flashcard:', error)
-      toast.error('Failed to create flashcard')
-    } finally {
-      setCreating(false)
-    }
+  // Handle opening the create flashcard modal
+  const handleCreateFlashcard = () => {
+    setIsModalOpen(true)
   }
 
-  const handleReviewFlashcard = async (flashcardId: number) => {
-    try {
-      // Example review - in real app this would come from user interaction
-      await FlashcardService.reviewFlashcard(flashcardId, {
-        quality: 4, // 0-5 rating
-        response_time: 2500 // 2.5 seconds
-      })
-
-      toast.success('Flashcard reviewed')
-      loadFlashcards() // Reload to get updated stats
-    } catch (error) {
-      console.error('Error reviewing flashcard:', error)
-      toast.error('Failed to review flashcard')
-    }
+  const handleDeleteFlashcard = (flashcardId: number, cardName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      cardId: flashcardId,
+      cardName: cardName,
+      isLoading: false
+    })
   }
 
-  const handleDeleteFlashcard = async (flashcardId: number) => {
-    if (!confirm('Are you sure you want to delete this flashcard?')) return
+  const confirmDeleteFlashcard = async () => {
+    if (!deleteModal.cardId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
-      await FlashcardService.deleteFlashcard(flashcardId)
-      setFlashcards(prev => prev.filter(card => card.id !== flashcardId))
+      await FlashcardService.deleteFlashcard(deleteModal.cardId)
       toast.success('Flashcard deleted')
+      // React Query will automatically refetch the flashcards list
     } catch (error) {
       console.error('Error deleting flashcard:', error)
       toast.error('Failed to delete flashcard')
+    } finally {
+      setDeleteModal({
+        isOpen: false,
+        cardId: null,
+        cardName: null,
+        isLoading: false
+      })
     }
+  }
+
+  // Component for displaying flashcard sets
+  const FlashcardSetCard = ({ set }: { set: FlashcardSet }) => {
+    const navigate = useNavigate()
+    return (
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/flashcard-sets/${set.id}`)}>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Layers className="text-indigo-500" />
+            <span className="truncate">{set.title || set.original_filename}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">{set.card_count} cards</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Created on: {new Date(set.created_at).toLocaleDateString()}
+          </p>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading flashcards</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
       </div>
     )
   }
@@ -112,14 +133,9 @@ export default function FlashcardsPage() {
         </div>
         <Button
           onClick={handleCreateFlashcard}
-          disabled={creating}
           className="flex items-center space-x-2"
         >
-          {creating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
+          <Plus className="h-4 w-4" />
           <span>Create Flashcard</span>
         </Button>
       </div>
@@ -129,14 +145,14 @@ export default function FlashcardsPage() {
         <CardHeader>
           <CardTitle className="text-white">Ready for Review</CardTitle>
           <CardDescription className="text-blue-100">
-            You have {stats.due_today} flashcards due for review
+            You have {stats.total_cards} flashcards across {sets?.length || 0} sets
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button
             variant="secondary"
             className="flex items-center space-x-2"
-            onClick={() => window.location.href = '/flashcards/review'}
+            onClick={() => navigate('/flashcards/review')}
           >
             <RotateCcw className="h-4 w-4" />
             <span>Start Review Session</span>
@@ -180,72 +196,59 @@ export default function FlashcardsPage() {
         </Card>
       </div>
 
-      {/* Flashcards Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {flashcards.slice(0, 6).map((card) => (
-          <Card key={card.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg truncate">{card.front_text}</CardTitle>
+      {/* Flashcard Sets Grid */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">Your Flashcard Sets</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading ? (
+            <p>Loading sets...</p>
+          ) : sets?.length ? (
+            sets.map((set) => (
+              <FlashcardSetCard key={set.id} set={set} />
+            ))
+          ) : (
+            <Card className="col-span-full">
+              <CardContent className="pt-6">
+                <div className="text-center text-gray-500">
+                  <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>You haven't created any flashcard sets from documents yet.</p>
+                  <p className="text-sm mt-2">Upload a document and generate flashcards to get started!</p>
                 </div>
-                <div className="flex space-x-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleReviewFlashcard(card.id)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteFlashcard(card.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="line-clamp-2">
-                {card.back_text}
-              </CardDescription>
-              <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
-                <span>Difficulty: {card.difficulty_level}</span>
-                <span>Reps: {card.repetitions}</span>
-              </div>
-              {card.next_review_date && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Next review: {new Date(card.next_review_date).toLocaleDateString()}
-                </div>
-              )}
-              <div className="mt-4 flex space-x-2">
-                <Button size="sm" variant="outline" onClick={() => handleReviewFlashcard(card.id)}>
-                  Review
-                </Button>
-                <Button size="sm">Practice</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
-      {flashcards.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center text-gray-500">
-              <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No flashcards yet. Create your first flashcard to get started!</p>
-              <Button className="mt-4" onClick={handleCreateFlashcard}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Flashcard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Practice Modal - Temporarily disabled until we implement set-based practice */}
+      {/* <PracticeModal
+        card={practicingCard}
+        allCards={flashcards}
+        onClose={() => setPracticingCard(null)}
+      /> */}
+
+      {/* Add Flashcard Modal */}
+      <AddFlashcardModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Flashcard View Modal - Temporarily disabled until we implement set-based view */}
+      {/* <FlashcardViewModal
+        card={viewingCard}
+        onClose={() => setViewingCard(null)}
+      /> */}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDeleteFlashcard}
+        title="Delete Flashcard"
+        description="Are you sure you want to delete this flashcard"
+        itemName={deleteModal.cardName || undefined}
+        isLoading={deleteModal.isLoading}
+      />
     </div>
   )
 }
