@@ -151,41 +151,9 @@ export class QuizService {
   }
 
   // Helper method to create quiz from AI-generated questions
-  static async createQuizFromAI(quizData: {
-    title: string
-    description?: string
-    quiz_type: string
-    difficulty_level?: string
-    document_id?: number
-    questions: {
-      question: string
-      options?: string[]
-      correct_answer: string
-      question_type: 'multiple_choice' | 'fill_blank' | 'true_false'
-      explanation?: string
-      points?: number
-    }[]
-  }): Promise<Quiz> {
-    const formattedQuestions: QuizQuestionCreate[] = quizData.questions.map((q, index) => ({
-      question_text: q.question,
-      question_type: q.question_type,
-      correct_answer: q.correct_answer,
-      options: q.options,
-      explanation: q.explanation,
-      points: q.points || 1,
-      order_index: index + 1
-    }))
-
-    const quizCreateData: QuizCreate = {
-      title: quizData.title,
-      description: quizData.description,
-      quiz_type: quizData.quiz_type,
-      difficulty_level: quizData.difficulty_level || 'medium',
-      document_id: quizData.document_id,
-      questions: formattedQuestions
-    }
-
-    return this.createQuiz(quizCreateData)
+  static async createQuizFromAI(quizData: QuizCreate): Promise<Quiz> {
+    // Now this function simply passes the data along
+    return this.createQuiz(quizData);
   }
 
   // Get quiz statistics

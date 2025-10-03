@@ -77,10 +77,16 @@ export default function FlashcardGenerationPage() {
     const cardsToSave = Array.from(selectedCards).map(index => flashcards[index]);
 
     try {
-      // Call API to save each card
+      // Call API to save each card - ensure all required fields are present
       await FlashcardService.createMultipleFlashcards(cardsToSave.map(card => ({
-          ...card,
-          document_id: parseInt(documentId!)
+        front_text: card.front_text,
+        back_text: card.back_text,
+        example_sentence: card.example_sentence,
+        pronunciation: card.pronunciation,
+        word_type: card.word_type,
+        difficulty_level: 'medium', // Set default difficulty level
+        tags: card.tags,
+        document_id: parseInt(documentId!)
       })));
       toast.success(`${cardsToSave.length} flashcards saved successfully!`);
       navigate('/flashcards'); // Navigate back to flashcard list page

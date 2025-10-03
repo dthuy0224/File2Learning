@@ -110,22 +110,22 @@ export default function QuizGenerationPage() {
       const quizData = {
         title: `${document.title || document.original_filename} - Quiz`,
         description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
-        quiz_type: 'mixed',
+        quiz_type: 'mixed', 
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
-        questions: quiz.map((q) => ({
-          question: q.question_text, // Change from question_text to question to match createQuizFromAI
+        questions: quiz.map((q, index) => ({
+          question_text: q.question_text, 
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
           explanation: q.explanation,
-          points: 1
-          // No need for order_index as createQuizFromAI will create it automatically
+          points: 1,
+          order_index: index + 1 
         }))
       };
 
       // Call the service to create quiz
-      const savedQuizData = await QuizService.createQuizFromAI(quizData as any);
+      const savedQuizData = await QuizService.createQuizFromAI(quizData);
       setSavedQuiz(savedQuizData);
       toast.success('Quiz saved successfully!');
     } catch (error: any) {
