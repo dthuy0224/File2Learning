@@ -241,10 +241,10 @@ async def create_document_from_topic(
     # Step 2: Create Document object in DB
     doc_in = DocumentCreate(
         filename=f"AI Generated - {topic_in.topic}.txt",
-        original_filename=f"AI Generated - {topic_in.topic}.txt", # Thêm dòng này
-        file_path=f"uploads/ai_generated/{topic_in.topic}.txt", # Thêm đường dẫn giả
-        file_size=len(generated_content), # Thêm kích thước file
-        document_type="txt", # Thêm loại file
+        original_filename=f"AI Generated - {topic_in.topic}.txt", # Add this line
+        file_path=f"uploads/ai_generated/{topic_in.topic}.txt", # Add fake file path
+        file_size=len(generated_content), # Add file size
+        document_type="txt", # Add file type
         content=generated_content
     )
     document_obj = document.create_with_owner(db=db, obj_in=doc_in, owner_id=current_user.id)
