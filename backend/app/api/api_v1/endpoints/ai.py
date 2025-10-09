@@ -9,7 +9,7 @@ from app.crud import document
 from app.schemas.document import Document
 from app.schemas.user import User
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.ai_service import ollama_service
+from app.services.multi_ai_service import multi_ai_service
 
 router = APIRouter()
 
@@ -39,8 +39,8 @@ async def generate_quiz_from_document(
         raise HTTPException(status_code=400, detail="Document has no content to process")
 
     try:
-        # Generate quiz using Ollama (async operation)
-        result = await ollama_service.generate_quiz(
+        # Generate quiz using Multi-AI Service (Gemini/Groq/Ollama)
+        result = await multi_ai_service.generate_quiz(
             text_content=document_obj.content,
             quiz_type=quiz_type,
             num_questions=num_questions
@@ -62,8 +62,9 @@ async def generate_quiz_from_document(
             "message": "Quiz generated successfully",
             "quiz": result["quiz"],
             "document_id": document_id,
+            "ai_provider": result["ai_provider"],
             "ai_model": result["ai_model"],
-            "generated_by": "ollama"
+            "generated_by": result["ai_provider"]
         }
 
     except Exception as e:
@@ -96,8 +97,8 @@ async def generate_flashcards_from_document(
         raise HTTPException(status_code=400, detail="Document has no content to process")
 
     try:
-        # Generate flashcards using Ollama
-        result = await ollama_service.generate_flashcards(
+        # Generate flashcards using Multi-AI Service
+        result = await multi_ai_service.generate_flashcards(
             text_content=document_obj.content,
             num_cards=num_cards
         )
@@ -115,6 +116,7 @@ async def generate_flashcards_from_document(
             "message": "Flashcards generated successfully",
             "flashcards": result["flashcards"],
             "document_id": document_id,
+            "ai_provider": result.get("ai_provider", "unknown"),
             "ai_model": result["ai_model"]
         }
 
@@ -148,8 +150,8 @@ async def generate_summary_from_document(
         raise HTTPException(status_code=400, detail="Document has no content to process")
 
     try:
-        # Generate summary using Ollama
-        result = await ollama_service.generate_summary(
+        # Generate summary using Multi-AI Service
+        result = await multi_ai_service.generate_summary(
             text_content=document_obj.content,
             max_length=max_length
         )
@@ -171,6 +173,7 @@ async def generate_summary_from_document(
             "message": "Summary generated successfully",
             "summary": result["summary"],
             "document_id": document_id,
+            "ai_provider": result.get("ai_provider", "unknown"),
             "ai_model": result["ai_model"],
             "original_length": result["original_length"],
             "summary_length": result["summary_length"]
@@ -219,13 +222,13 @@ async def get_available_models() -> Any:
 
 
 @router.post("/test-connection", response_model=Dict[str, Any])
-async def test_ollama_connection() -> Any:
+async def test_ai_connection() -> Any:
     """
-    Test connection to Ollama service
+    Test connection to Multi-AI Service (Gemini/Groq/Ollama)
     """
     try:
         # Simple test prompt
-        test_result = await ollama_service.generate_summary(
+        test_result = await multi_ai_service.generate_summary(
             text_content="This is a test document for connection testing.",
             max_length=50
         )
@@ -233,14 +236,17 @@ async def test_ollama_connection() -> Any:
         if test_result["success"]:
             return {
                 "status": "connected",
-                "message": "Ollama is working correctly",
-                "model": test_result.get("ai_model", "unknown")
+                "message": "AI service is working correctly! 🎉",
+                "provider": test_result.get("ai_provider", "unknown"),
+                "model": test_result.get("ai_model", "unknown"),
+                "stats": multi_ai_service.get_stats()
             }
         else:
             return {
                 "status": "error",
-                "message": "Ollama connection failed",
-                "error": test_result.get("error", "Unknown error")
+                "message": "All AI providers failed",
+                "error": test_result.get("error", "Unknown error"),
+                "stats": multi_ai_service.get_stats()
             }
 
     except Exception as e:
@@ -248,6 +254,25 @@ async def test_ollama_connection() -> Any:
             "status": "error",
             "message": f"Connection test failed: {str(e)}"
         }
+
+
+@router.get("/stats", response_model=Dict[str, Any])
+async def get_ai_stats() -> Any:
+    """
+    Get AI service usage statistics
+    """
+    try:
+        stats = multi_ai_service.get_stats()
+        return {
+            "success": True,
+            "stats": stats,
+            "message": "AI service statistics retrieved successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting stats: {str(e)}"
+        )
 
 
 @router.post("/{document_id}/chat", response_model=Dict[str, Any])
@@ -273,8 +298,8 @@ async def chat_with_document(
         raise HTTPException(status_code=400, detail="Document has no content to chat about")
 
     try:
-        # Generate chat response using Ollama
-        result = await ollama_service.generate_chat_response(
+        # Generate chat response using Multi-AI Service
+        result = await multi_ai_service.generate_chat_response(
             text_content=document_obj.content,
             user_query=chat_request.query,
             chat_history=chat_request.conversation_history or []
@@ -293,6 +318,7 @@ async def chat_with_document(
             "message": "Chat response generated successfully",
             "answer": result["answer"],
             "document_id": document_id,
+            "ai_provider": result.get("ai_provider", "unknown"),
             "ai_model": result["ai_model"],
             "success": True
         }

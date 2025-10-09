@@ -62,6 +62,9 @@ services:
       - REDIS_URL=redis://redis:6379
       - OLLAMA_URL=http://ollama:11434
       - SECRET_KEY=dev-secret-key-change-in-production
+      # AI Provider API Keys (FREE for students!)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./backend:/app
@@ -91,6 +94,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_URL=http://ollama:11434
       - SECRET_KEY=dev-secret-key-change-in-production
+      # AI Provider API Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - C_FORCE_ROOT=true
       - PYTHONPATH=/app
     volumes:
