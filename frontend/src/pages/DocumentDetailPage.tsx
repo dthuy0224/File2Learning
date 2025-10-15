@@ -14,6 +14,7 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isChatModalOpen, setIsChatModalOpen] = useState(false)
+  const [generatingSummary, setGeneratingSummary] = useState(false)
 
   useEffect(() => {
     if (documentId) {
@@ -36,6 +37,42 @@ export default function DocumentDetailPage() {
       toast.error('Failed to load document')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGenerateSummary = async () => {
+    if (!documentId || !document) return
+
+    try {
+      setGeneratingSummary(true)
+      const docId = parseInt(documentId)
+      
+      // Show loading toast
+      toast.loading('Generating summary with AI...', { id: 'summary-gen' })
+      
+      // Call AI service to generate summary
+      const result = await AIService.generateSummary(docId, 300)
+      
+      // Update document state with new summary
+      setDocument({
+        ...document,
+        summary: result.summary
+      })
+      
+      // Show success toast
+      toast.success(
+        `Summary generated successfully using ${result.model_used}!`,
+        { id: 'summary-gen' }
+      )
+      
+    } catch (error: any) {
+      console.error('Error generating summary:', error)
+      toast.error(
+        error.response?.data?.detail || 'Failed to generate summary',
+        { id: 'summary-gen' }
+      )
+    } finally {
+      setGeneratingSummary(false)
     }
   }
 
@@ -211,9 +248,17 @@ export default function DocumentDetailPage() {
                   variant="outline"
                   size="sm"
                   className="mt-2"
-                  // onClick={handleGenerateSummary} // You will need to write this function
+                  onClick={handleGenerateSummary}
+                  disabled={generatingSummary}
                 >
-                  Generate Summary with AI
+                  {generatingSummary ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Summary with AI"
+                  )}
                 </Button>
               </div>
             )}

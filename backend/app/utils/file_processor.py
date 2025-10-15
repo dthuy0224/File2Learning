@@ -326,21 +326,35 @@ class FileProcessor:
             errors.append("Content too short (minimum 50 characters required)")
 
         # Check for excessive special characters (might indicate poor extraction)
-        special_chars = sum(1 for c in content if not c.isalnum() and not c.isspace() and c not in '.,!?;:"()-')
-        if special_chars > len(content) * 0.1:  # More than 10% special characters
+        special_chars = sum(1 for c in content if not c.isalnum() and not c.isspace() and c not in '.,!?;:"()-\'')
+        if special_chars > len(content) * 0.15:  # More than 15% special characters (increased from 10%)
             errors.append("High number of special characters detected (possible extraction issue)")
 
         # Check for repetitive content (might indicate OCR errors)
+        # Note: Real documents have much lower unique word ratios than you might expect
+        # - Common words make up ~50% of text
+        # - Long documents (books) typically have 5-15% unique word ratio
+        # - Short documents might have 20-40% unique word ratio
         words = content.split()
         if len(words) > 10:
             unique_words = set(words)
             repetition_ratio = len(unique_words) / len(words)
-            if repetition_ratio < 0.3:  # Less than 30% unique words
-                errors.append("High word repetition detected (possible OCR or extraction issue)")
+            
+            # Adjust threshold based on document length
+            # Longer documents naturally have more repetition
+            if len(words) < 1000:
+                min_ratio = 0.15  # 15% for short documents
+            elif len(words) < 10000:
+                min_ratio = 0.08  # 8% for medium documents
+            else:
+                min_ratio = 0.03  # 3% for long documents (ebooks, textbooks)
+            
+            if repetition_ratio < min_ratio:
+                errors.append(f"Extremely high word repetition detected (only {repetition_ratio:.1%} unique words, expected >{min_ratio:.0%})")
 
         # Check for encoding issues (weird characters)
         weird_chars = sum(1 for c in content if ord(c) > 65535 or (ord(c) < 32 and c not in '\n\r\t'))
-        if weird_chars > len(content) * 0.01:  # More than 1% weird characters
+        if weird_chars > len(content) * 0.02:  # More than 2% weird characters (increased from 1%)
             encoding_issues = weird_chars
 
         # Check for minimum word count

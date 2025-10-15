@@ -61,8 +61,7 @@ services:
       - DATABASE_URL=postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning
       - REDIS_URL=redis://redis:6379
       - OLLAMA_URL=http://ollama:11434
-      - SECRET_KEY=dev-secret-key-change-in-production
-      # AI Provider API Keys (FREE for students!)
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -93,8 +92,7 @@ services:
       - DATABASE_URL=postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_URL=http://ollama:11434
-      - SECRET_KEY=dev-secret-key-change-in-production
-      # AI Provider API Keys
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
