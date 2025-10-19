@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Button } from './ui/button';
 import { Flashcard } from '../services/flashcardService';
 
-// Hàm helper để trộn mảng
+// Helper function to shuffle array
 const shuffleArray = (array: any[]) => [...array].sort(() => Math.random() - 0.5);
 
 interface PracticeModalProps {
@@ -15,13 +15,13 @@ export default function PracticeModal({ card, allCards, onClose }: PracticeModal
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Tạo câu hỏi và các lựa chọn
+  // Create question and options
   const { question, options } = useMemo(() => {
     if (!card) return { question: '', options: [] };
 
     const questionText = `Which word means: "${card.back_text}"?`;
 
-    // Lấy 3 đáp án sai ngẫu nhiên
+    // Get 3 random wrong answers
     const otherOptions = allCards
       .filter(c => c.id !== card.id)
       .map(c => c.front_text);

@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core import deps
 from app.crud import document
-from app.schemas.document import Document, DocumentCreate, DocumentUpdate
+from app.schemas.document import Document, DocumentCreate, DocumentUpdate, DocumentCreateFromTopic
 from app.schemas.user import User
 from app.utils.file_processor import FileProcessor, SecurityScanner
 from app.tasks.document_tasks import process_document_task
+from app.services.ai_service import ollama_service
 
 router = APIRouter()
 
@@ -215,6 +216,50 @@ def delete_document(
             print(f"Error deleting physical file: {str(e)}")
 
     return {"message": "Document deleted successfully"}
+
+
+@router.post("/from-topic", response_model=Document, status_code=201)
+async def create_document_from_topic(
+    *,
+    db: Session = Depends(get_db),
+    topic_in: DocumentCreateFromTopic,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Create a new document from a topic provided by the user, using AI.
+    """
+    # Step 1: Call AI Service to generate content
+    generation_result = await ollama_service.generate_document_from_topic(topic_in.topic)
+    if not generation_result["success"]:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI failed to generate content: {generation_result['error']}"
+        )
+
+    generated_content = generation_result["content"]
+
+    # Step 2: Create Document object in DB
+    doc_in = DocumentCreate(
+        filename=f"AI Generated - {topic_in.topic}.txt",
+        original_filename=f"AI Generated - {topic_in.topic}.txt", # Add this line
+        file_path=f"uploads/ai_generated/{topic_in.topic}.txt", # Add fake file path
+        file_size=len(generated_content), # Add file size
+        document_type="txt", # Add file type
+        content=generated_content
+    )
+    document_obj = document.create_with_owner(db=db, obj_in=doc_in, owner_id=current_user.id)
+
+    # Step 3: Update document status to completed since we already have the content
+    # No need for background processing since content is already generated
+    from datetime import datetime
+    update_data = DocumentUpdate(
+        processing_status='completed',
+        processed_at=datetime.utcnow(),
+        word_count=len(generated_content.split())
+    )
+    document.update(db=db, db_obj=document_obj, obj_in=update_data)
+
+    return document_obj
 
 
 @router.get("/{document_id}/status")

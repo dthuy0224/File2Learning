@@ -115,10 +115,10 @@ def review_flashcard(
     if flashcard_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
 
-    # --- Bắt đầu logic SRS (SM-2) ---
-    quality = review.quality # Chất lượng người dùng đánh giá (từ 0-5)
+    # --- Start SRS (SM-2) logic ---
+    quality = review.quality # User rating quality (0-5)
 
-    if quality >= 3: # Nếu trả lời đúng (dễ, vừa, khó)
+    if quality >= 3: # If answer is correct (easy, medium, hard)
         if flashcard_obj.repetitions == 0:
             interval = 1
         elif flashcard_obj.repetitions == 1:
@@ -128,15 +128,15 @@ def review_flashcard(
 
         flashcard_obj.repetitions += 1
         flashcard_obj.ease_factor = flashcard_obj.ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-    else: # Nếu trả lời sai
-        flashcard_obj.repetitions = 0 # Reset số lần lặp lại
-        interval = 1 # Hẹn gặp lại vào ngày mai
+    else: # If answer is wrong
+        flashcard_obj.repetitions = 0 # Reset repetitions count
+        interval = 1 # See you tomorrow
 
-    # Đảm bảo ease_factor không quá thấp
+    # Ensure ease_factor is not too low
     if flashcard_obj.ease_factor < 1.3:
         flashcard_obj.ease_factor = 1.3
 
-    # Cập nhật ngày ôn tập tiếp theo
+    # Update next review date
     flashcard_obj.next_review_date = datetime.utcnow() + timedelta(days=interval)
     flashcard_obj.interval = interval
     flashcard_obj.last_review_quality = quality

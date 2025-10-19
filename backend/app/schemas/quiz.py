@@ -74,7 +74,7 @@ class QuizAnswerSubmit(BaseModel):
 
 class QuizAttemptSubmit(BaseModel):
     quiz_id: int
-    answers: Dict[int, str]  # question_id -> answer
+    answers: Dict[str, str]  # question_id -> answer
     total_time: Optional[int] = None  # total seconds
 
 
@@ -82,7 +82,7 @@ class QuizAttempt(BaseModel):
     id: int
     quiz_id: int
     user_id: int
-    answers: Dict[int, Dict[str, Any]]  # question_id -> detailed answer info
+    answers: Dict[str, Dict[str, Any]]  # question_id -> detailed answer info
     score: int
     max_score: int
     percentage: int

@@ -110,22 +110,22 @@ export default function QuizGenerationPage() {
       const quizData = {
         title: `${document.title || document.original_filename} - Quiz`,
         description: `AI-generated ${quizType.toUpperCase()} quiz with ${numQuestions} questions`,
-        quiz_type: quizType === 'mcq' ? 'multiple_choice' : quizType === 'fill_blank' ? 'fill_blank' : 'mixed',
+        quiz_type: 'mixed', 
         difficulty_level: 'medium',
         document_id: parseInt(documentId!),
-        questions: quiz.map((q) => ({
-          question: q.question_text, // Đổi từ question_text thành question để khớp với createQuizFromAI
+        questions: quiz.map((q, index) => ({
+          question_text: q.question_text, 
           options: q.options,
           correct_answer: q.correct_answer,
           question_type: q.question_type,
           explanation: q.explanation,
-          points: 1
-          // Không cần order_index vì createQuizFromAI sẽ tự động tạo
+          points: 1,
+          order_index: index + 1 
         }))
       };
 
-      // Gọi đến service để tạo quiz
-      const savedQuizData = await QuizService.createQuizFromAI(quizData as any);
+      // Call the service to create quiz
+      const savedQuizData = await QuizService.createQuizFromAI(quizData);
       setSavedQuiz(savedQuizData);
       toast.success('Quiz saved successfully!');
     } catch (error: any) {

@@ -49,17 +49,14 @@ def get_quick_quiz(
     questions = []
     for i, card in enumerate(selected_cards):
         other_cards = [c for c in user_flashcards if c.id != card.id]
-
-        # Đảm bảo có đủ thẻ để tạo đáp án sai
         num_wrong_answers = min(3, len(other_cards))
 
-        # Kiểm tra edge case: nếu không đủ thẻ để tạo đáp án sai
-        if num_wrong_answers == 0:
-            # Nếu không có thẻ nào khác, tạo đáp án sai giả
-            wrong_answers = ["Option A", "Option B", "Option C"]
-        else:
+        # Check edge case: if not enough cards to create wrong answers
+        if num_wrong_answers > 0:
             wrong_cards = random.sample(other_cards, num_wrong_answers)
             wrong_answers = [c.back_text for c in wrong_cards]
+        else:
+            wrong_answers = ["Option A", "Option B", "Option C"]
 
         options = wrong_answers + [card.back_text]
         random.shuffle(options)
@@ -207,11 +204,11 @@ def submit_quiz_attempt(
 
     for question in questions:
         question_id = question.id
-        user_answer = submission.answers.get(question_id, "")
+        user_answer = submission.answers.get(str(question_id), "")
         correct_answer = question.correct_answer
 
-        
-        answers_dict[question_id] = {
+
+        answers_dict[str(question_id)] = {
             "question_text": question.question_text,
             "user_answer": user_answer,
             "correct_answer": correct_answer,

@@ -39,6 +39,7 @@ export interface Document {
   created_at: string
   processed_at?: string
   content?: string
+  summary?: string
   difficulty_level?: string
   language_detected?: string
 }
@@ -82,6 +83,21 @@ export interface DocumentStatus {
     estimated_completion?: string
     elapsed_time_seconds?: number
   }
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp?: string
+}
+
+export interface ChatResponse {
+  answer: string
+  document_id: number
+  ai_model: string
+  success: boolean
+  message?: string
+  error?: string
 }
 
 export class AIService {
@@ -198,6 +214,25 @@ export class AIService {
     // Use the quiz service to create the quiz
     const { QuizService } = await import('./quizService')
     return QuizService.createQuizFromAI(quizData)
+  }
+
+  // Chat operations
+  static async chatWithDocument(
+    documentId: number,
+    query: string,
+    history: ChatMessage[] = []
+  ): Promise<ChatResponse> {
+    const response = await api.post(`/v1/ai/${documentId}/chat`, {
+      query,
+      history,
+    })
+    return response.data
+  }
+
+  // Document creation operations
+  static async createDocumentFromTopic(topic: string): Promise<Document> {
+    const response = await api.post('/v1/documents/from-topic', { topic })
+    return response.data
   }
 }
 

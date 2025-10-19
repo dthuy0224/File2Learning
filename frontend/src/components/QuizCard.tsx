@@ -14,7 +14,7 @@ interface QuizCardProps {
 
 export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
   const navigate = useNavigate()
-  // Hook được gọi ở top-level của component con, hoàn toàn hợp lệ
+  // Hook is called at top-level of child component, completely valid
   const { data: attempts, isLoading: attemptsLoading } = useQuizAttempts(quiz.id)
 
   const stats = QuizService.getQuizStatsFromAttempts(attempts || [])
@@ -25,7 +25,7 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Brain className="h-5 w-5 text-purple-600" />
-            {/* Giới hạn text để tránh tràn */}
+            {/* Limit text to prevent overflow */}
             <CardTitle className="text-lg truncate" title={quiz.title}>{quiz.title}</CardTitle>
           </div>
           <div className="flex space-x-1">
@@ -47,9 +47,9 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
         </div>
       </CardHeader>
 
-      {/* THAY ĐỔI: Biến CardContent thành flex container để đẩy nút xuống dưới */}
+      {/* CHANGE: Make CardContent a flex container to push buttons down */}
       <CardContent className="flex flex-col flex-grow">
-        <div className="flex-grow"> {/* Phần này sẽ giãn ra */}
+        <div className="flex-grow"> {/* This part will expand */}
           <CardDescription>
             {quiz.questions.length} questions • {quiz.difficulty_level} difficulty
           </CardDescription>
@@ -58,7 +58,7 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
             <span>{quiz.time_limit ? `${quiz.time_limit} min` : 'No time limit'}</span>
           </div>
 
-          {/* Giữ một khoảng trống cố định cho description để layout ổn định */}
+          {/* Keep fixed space for description to maintain stable layout */}
           <div className="min-h-[40px] mt-2">
             {quiz.description && (
               <p className="text-sm text-gray-600 line-clamp-2">{quiz.description}</p>
@@ -83,7 +83,7 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
           )}
         </div>
 
-        <div className="mt-4 flex space-x-2"> {/* Phần này sẽ bị đẩy xuống dưới cùng */}
+        <div className="mt-4 flex space-x-2"> {/* This part will be pushed to the bottom */}
           <Button size="sm" variant="outline">Preview</Button>
           <Button
             size="sm"

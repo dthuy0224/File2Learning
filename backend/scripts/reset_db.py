@@ -53,7 +53,7 @@ def reset_database():
         db.close()
 
         print("🔧 Running migrations...")
-        os.system("python -m alembic upgrade head")
+        os.system("python -m alembic upgrade heads")
 
         print("🌱 Seeding database...")
         seed_database()
@@ -127,8 +127,8 @@ def show_schema():
                     print(f"    - {idx_name}")
 
         # Show record counts
-        print("
-📊 Record Counts:"        print("=" * 30)
+        print("\n📊 Record Counts:")
+        print("=" * 30)
         for table in tables:
             count_query = text(f"SELECT COUNT(*) FROM {table};")
             result = db.execute(count_query)

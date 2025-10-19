@@ -42,7 +42,7 @@ const ProgressPage = () => {
   const skillChartData = skillBreakdown?.map(item => ({
     level: item.level,
     accuracy: item.accuracy,
-    color: item.level === 'Dễ' ? '#22c55e' : item.level === 'Trung bình' ? '#f59e0b' : '#ef4444'
+    color: item.level === 'Easy' ? '#22c55e' : item.level === 'Medium' ? '#f59e0b' : '#ef4444'
   })) || []
 
   // Transform heatmap data for react-calendar-heatmap

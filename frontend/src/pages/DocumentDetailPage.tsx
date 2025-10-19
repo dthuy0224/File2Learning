@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { ArrowLeft, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { ArrowLeft, FileText, Loader2, CheckCircle, AlertCircle, MessageCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import AIService, { Document } from '../services/aiService'
+import ChatbotModal from '../components/ChatbotModal'
 
 export default function DocumentDetailPage() {
   const { documentId } = useParams<{ documentId: string }>()
@@ -12,6 +13,7 @@ export default function DocumentDetailPage() {
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false)
 
   useEffect(() => {
     if (documentId) {
@@ -209,7 +211,7 @@ export default function DocumentDetailPage() {
                   variant="outline"
                   size="sm"
                   className="mt-2"
-                  // onClick={handleGenerateSummary} // Bạn sẽ cần viết hàm này
+                  // onClick={handleGenerateSummary} // You will need to write this function
                 >
                   Generate Summary with AI
                 </Button>
@@ -218,7 +220,7 @@ export default function DocumentDetailPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex space-x-2 pt-4">
+          <div className="flex flex-wrap gap-2 pt-4">
             {document.processing_status === 'completed' && (
               <>
                 <Button
@@ -235,11 +237,28 @@ export default function DocumentDetailPage() {
                 >
                   Generate Flashcards
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsChatModalOpen(true)}
+                  className="flex items-center space-x-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Chat with AI</span>
+                </Button>
               </>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Chatbot Modal */}
+      <ChatbotModal
+        isOpen={isChatModalOpen}
+        onClose={() => setIsChatModalOpen(false)}
+        documentId={document.id}
+        documentTitle={document.title || document.original_filename}
+      />
     </div>
   )
 }

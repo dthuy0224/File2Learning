@@ -15,7 +15,7 @@ export default function SelectDocumentModal({ isOpen, onClose }: SelectDocumentM
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents'],
     queryFn: () => AIService.getDocuments(),
-    // Chỉ lấy những document đã xử lý xong
+    // Only get documents that have been processed
     select: (data: Document[]) => data.filter(doc => doc.processing_status === 'completed')
   });
 

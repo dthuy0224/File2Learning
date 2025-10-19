@@ -59,7 +59,7 @@ class OllamaService:
             return {
                 "success": True,
                 "quiz": quiz_data,
-                "model_used": self.default_model,
+                "ai_model": self.default_model,
                 "text_length": len(text_content)
             }
 
@@ -106,7 +106,7 @@ class OllamaService:
             return {
                 "success": True,
                 "flashcards": flashcards,
-                "model_used": self.default_model
+                "ai_model": self.default_model
             }
 
         except Exception as e:
@@ -301,6 +301,87 @@ class OllamaService:
 
         return flashcards
 
+    async def generate_chat_response(self, text_content: str, user_query: str, chat_history: List[Dict] = None) -> Dict:
+        """
+        Generate a chat response based on document content and user query.
+        """
+        if chat_history is None:
+            chat_history = []
+
+        try:
+            # Limit context length to avoid overload
+            max_input_length = 6000
+            if len(text_content) > max_input_length:
+                text_content = text_content[:max_input_length] + "..."
+
+            prompt = self._build_chat_prompt(text_content, user_query, chat_history)
+
+            response = self.client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.default_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,  # Slightly creative for conversational responses
+                        "top_p": 0.9
+                    }
+                }
+            )
+
+            if response.status_code != 200:
+                raise Exception(f"Ollama API error: {response.status_code} - {response.text}")
+
+            result = response.json()
+            ai_response = result.get("response", "").strip()
+
+            return {
+                "success": True,
+                "answer": ai_response,
+                "ai_model": self.default_model,
+                "document_length": len(document_content),
+                "query_length": len(user_query)
+            }
+
+        except Exception as e:
+            logger.error(f"Error generating chat response with Ollama: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "answer": "Sorry, I am unable to answer your question right now. Please try again later."
+            }
+
+    def _build_chat_prompt(self, document_content: str, user_query: str, conversation_history: Optional[List[Dict]] = None) -> str:
+        """Build prompt for chat response based on document context"""
+
+        # Start with system instruction
+        system_prompt = """You are a helpful AI assistant specialized in answering questions based on provided document content.
+
+Rules:
+1. Answer only based on information available in the provided document
+2. If the question is not related to the document, politely decline to answer
+3. Keep responses concise, clear, and helpful
+4. Respond in English for better document understanding, but understand Vietnamese user queries
+
+Document:
+"""
+
+        # Add document content
+        full_prompt = system_prompt + document_content
+
+        # Add conversation history if available
+        if conversation_history:
+            full_prompt += "\n\nChat History:\n"
+            for msg in conversation_history[-5:]:  # Last 5 messages for context
+                role = "User" if msg.get("role") == "user" else "AI"
+                content = msg.get("content", "")
+                full_prompt += f"{role}: {content}\n"
+
+        # Add current user query
+        full_prompt += f"\nUser query: {user_query}\n\nAnswer:"
+
+        return full_prompt
+
     def _generate_fallback_quiz(self, text: str, quiz_type: str, num_questions: int) -> List[Dict]:
         """Generate simple fallback quiz when AI fails"""
         # Simple keyword-based fallback
@@ -317,6 +398,46 @@ class OllamaService:
             })
 
         return questions
+
+    async def generate_document_from_topic(self, topic: str) -> Dict:
+        """
+        Generate a reading passage content from a topic provided by the user.
+        """
+        try:
+            prompt = self._build_topic_generation_prompt(topic)
+
+            response = self.client.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.default_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.7}
+                }
+            )
+            response.raise_for_status() # Raise error if status code is not 2xx
+
+            result = response.json()
+            generated_content = result.get("response", "").strip()
+
+            if not generated_content:
+                raise Exception("AI did not return any content.")
+
+            return {"success": True, "content": generated_content}
+
+        except Exception as e:
+            logger.error(f"Error generating document from topic '{topic}': {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    def _build_topic_generation_prompt(self, topic: str) -> str:
+        """Build prompt to request AI to write an article."""
+        return f"""
+        You are an expert in writing educational content in English.
+        Please write a complete English reading passage (approximately 400-500 words) on the following topic: "{topic}".
+
+        The article should have a clear structure, use rich vocabulary and be suitable for English learners at intermediate level (B1-B2).
+        Return only the article content, without any greetings or comments.
+        """
 
 
 # Global instance

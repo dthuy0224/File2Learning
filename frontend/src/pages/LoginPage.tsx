@@ -22,31 +22,40 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: async (tokenData) => {
-      try {
-        // Set token first (user data will be fetched later)
-        login(tokenData.access_token, null as any)
+      // Set token first (user data will be fetched later)
+      login(tokenData.access_token, null as any)
 
-        // Wait a bit for token to be persisted, then fetch user data
-        setTimeout(async () => {
-          try {
-            const userData = await authService.fetchUser()
-            login(tokenData.access_token, userData)
-          } catch (fetchError: any) {
-            console.warn('Could not fetch user data:', fetchError)
-            // Continue with login even if user data fetch fails
-          }
-        }, 100)
+      // Wait a bit for token to be persisted, then fetch user data
+      setTimeout(async () => {
+        try {
+          const userData = await authService.fetchUser()
+          login(tokenData.access_token, userData)
+        } catch (fetchError: any) {
+          console.warn('Could not fetch user data:', fetchError)
+          // Continue with login even if user data fetch fails
+        }
+      }, 100)
 
-        toast.success('Welcome back!')
-        navigate('/dashboard')
-      } catch (error: any) {
-        console.error('Login error:', error)
-        toast.error(error.response?.data?.detail || 'Login failed')
-      }
+      toast.success('Welcome back!')
+      navigate('/dashboard')
     },
     onError: (error: any) => {
       console.error('Login error:', error)
-      toast.error(error.response?.data?.detail || 'Login failed')
+      console.error('Error response:', error.response)
+      console.error('Error status:', error.response?.status)
+      console.error('Error data:', error.response?.data)
+
+      if (error.response?.status === 400) {
+        toast.error(error.response?.data?.detail || 'Invalid credentials')
+      } else if (error.response?.status === 422) {
+        toast.error('Invalid request format - please check your input')
+      } else if (error.response?.status >= 500) {
+        toast.error(`Server error (${error.response?.status}): Please try again later`)
+      } else if (!error.response) {
+        toast.error('Network error - please check your connection')
+      } else {
+        toast.error(`Login failed: ${error.response?.data?.detail || error.message || 'Please try again'}`)
+      }
     }
   })
 

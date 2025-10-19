@@ -21,16 +21,31 @@ export interface LoginResponse {
 
 export const authService = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
+    console.log('Login attempt:', { username: data.username, hasPassword: !!data.password })
+
     const formData = new URLSearchParams()
     formData.append('username', data.username)
     formData.append('password', data.password)
 
-    const response = await api.post('/v1/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
-    return response.data
+    console.log('Form data:', formData.toString())
+
+    try {
+      const response = await api.post('/v1/auth/login', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      })
+      console.log('Login success:', response.status, response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('Login error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        config: error.config
+      })
+      throw error
+    }
   },
 
   register: async (data: RegisterRequest): Promise<User> => {

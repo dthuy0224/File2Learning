@@ -8,6 +8,7 @@ from app.core import deps
 from app.crud import document
 from app.schemas.document import Document
 from app.schemas.user import User
+from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.ai_service import ollama_service
 
 router = APIRouter()
@@ -61,7 +62,7 @@ async def generate_quiz_from_document(
             "message": "Quiz generated successfully",
             "quiz": result["quiz"],
             "document_id": document_id,
-            "model_used": result["model_used"],
+            "ai_model": result["ai_model"],
             "generated_by": "ollama"
         }
 
@@ -114,7 +115,7 @@ async def generate_flashcards_from_document(
             "message": "Flashcards generated successfully",
             "flashcards": result["flashcards"],
             "document_id": document_id,
-            "model_used": result["model_used"]
+            "ai_model": result["ai_model"]
         }
 
     except Exception as e:
@@ -170,7 +171,7 @@ async def generate_summary_from_document(
             "message": "Summary generated successfully",
             "summary": result["summary"],
             "document_id": document_id,
-            "model_used": result["model_used"],
+            "ai_model": result["ai_model"],
             "original_length": result["original_length"],
             "summary_length": result["summary_length"]
         }
@@ -233,7 +234,7 @@ async def test_ollama_connection() -> Any:
             return {
                 "status": "connected",
                 "message": "Ollama is working correctly",
-                "model": test_result.get("model_used", "unknown")
+                "model": test_result.get("ai_model", "unknown")
             }
         else:
             return {
@@ -247,3 +248,57 @@ async def test_ollama_connection() -> Any:
             "status": "error",
             "message": f"Connection test failed: {str(e)}"
         }
+
+
+@router.post("/{document_id}/chat", response_model=Dict[str, Any])
+async def chat_with_document(
+    *,
+    db: Session = Depends(get_db),
+    document_id: int,
+    chat_request: ChatRequest,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Chat with AI about a specific document
+    """
+    # Get document
+    document_obj = document.get(db=db, id=document_id)
+    if not document_obj:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if document_obj.owner_id != current_user.id:
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    if not document_obj.content:
+        raise HTTPException(status_code=400, detail="Document has no content to chat about")
+
+    try:
+        # Generate chat response using Ollama
+        result = await ollama_service.generate_chat_response(
+            text_content=document_obj.content,
+            user_query=chat_request.query,
+            chat_history=chat_request.conversation_history or []
+        )
+
+        if not result["success"]:
+            return {
+                "message": "AI chat failed",
+                "answer": result.get("answer", "Unable to generate response"),
+                "error": result.get("error"),
+                "document_id": document_id,
+                "success": False
+            }
+
+        return {
+            "message": "Chat response generated successfully",
+            "answer": result["answer"],
+            "document_id": document_id,
+            "ai_model": result["ai_model"],
+            "success": True
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating chat response: {str(e)}"
+        )
