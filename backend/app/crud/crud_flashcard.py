@@ -55,6 +55,5 @@ class CRUDFlashcard(CRUDBase[Flashcard, FlashcardCreate, FlashcardUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
-
-
+    
 flashcard = CRUDFlashcard(Flashcard)

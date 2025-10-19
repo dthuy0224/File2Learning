@@ -11,7 +11,7 @@ from app.schemas.document import Document, DocumentCreate, DocumentUpdate, Docum
 from app.schemas.user import User
 from app.utils.file_processor import FileProcessor, SecurityScanner
 from app.tasks.document_tasks import process_document_task
-from app.services.ai_service import ollama_service
+from app.services.multi_ai_service import multi_ai_service
 
 router = APIRouter()
 
@@ -228,15 +228,21 @@ async def create_document_from_topic(
     """
     Create a new document from a topic provided by the user, using AI.
     """
-    # Step 1: Call AI Service to generate content
-    generation_result = await ollama_service.generate_document_from_topic(topic_in.topic)
-    if not generation_result["success"]:
+    # Step 1: Call AI Service to generate content (using Gemini/Groq)
+    # Generate a reading passage from the topic
+    summary_result = await multi_ai_service.generate_summary(
+        text_content=f"Write a comprehensive English reading passage (400-500 words) about: {topic_in.topic}. Make it educational and suitable for English learners.",
+        max_length=500
+    )
+    
+    if not summary_result["success"]:
         raise HTTPException(
             status_code=500,
-            detail=f"AI failed to generate content: {generation_result['error']}"
+            detail=f"AI failed to generate content: {summary_result.get('error', 'Unknown error')}"
         )
-
-    generated_content = generation_result["content"]
+    
+    generated_content = summary_result["summary"]
+    
 
     # Step 2: Create Document object in DB
     doc_in = DocumentCreate(
