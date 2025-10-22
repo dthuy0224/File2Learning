@@ -3,17 +3,16 @@ import { useAuthStore } from '../store/authStore'
 import toast from 'react-hot-toast'
 
 // Create axios instance
-export const api = axios.create({
-  baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api/v1',  // ✅ Đúng URL backend
+  withCredentials: true,
 })
+
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  // Don't add Authorization header to auth requests (login, register)
+  const token = localStorage.getItem('ai-learning-auth-token') || useAuthStore.getState().token
+  // Don't add Authorization header to auth endpoints
   if (token && !config.url?.includes('/auth/')) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -28,9 +27,11 @@ api.interceptors.response.use(
       // Token expired or invalid
       useAuthStore.getState().logout()
       toast.error('Session expired. Please login again.')
-    } else if (error.response?.status >= 500) {
-      toast.error('Server error. Please try again later.')
     }
+    // Temporarily disable 500+ error toast to see actual errors
+    // else if (error.response?.status >= 500) {
+    //   toast.error('Server error. Please try again later.')
+    // }
     return Promise.reject(error)
   }
 )

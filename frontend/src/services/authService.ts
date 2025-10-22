@@ -2,7 +2,7 @@ import api from './api'
 import { User } from '../store/authStore'
 
 export interface LoginRequest {
-  username: string  // email
+  username: string // email (backend dùng "username" field)
   password: string
 }
 
@@ -20,36 +20,57 @@ export interface LoginResponse {
 }
 
 export const authService = {
+  // 🚀 Login
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const formData = new FormData()
-    formData.append('username', data.username)
-    formData.append('password', data.password)
+    const params = new URLSearchParams()
+    params.append('username', data.username)
+    params.append('password', data.password)
 
-    const response = await api.post('/v1/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    const response = await api.post('/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      withCredentials: true,
     })
     return response.data
   },
 
+  // 🚀 Register
   register: async (data: RegisterRequest): Promise<User> => {
-    const response = await api.post('/v1/users/', data)
+    const response = await api.post('/users/', data)
     return response.data
   },
 
+  // 🚀 Get current user
   getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/v1/users/me')
+    const response = await api.get('/users/me', { withCredentials: true })
     return response.data
   },
 
+  // 🚀 Test token
   testToken: async (): Promise<User> => {
-    const response = await api.post('/v1/auth/test-token')
+    const response = await api.post('/auth/test-token')
     return response.data
   },
 
-  fetchUser: async (): Promise<User> => {
-    const response = await api.get('/v1/users/me')
+  // 🚀 Forgot password
+forgotPassword: async (email: string) => {
+  return api.post('/auth/forgot-password', { email })
+},
+
+
+  // 🚀 Reset password
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post('/auth/reset-password', null, {
+      params: { token, new_password: newPassword },
+    })
     return response.data
   },
+
+  // 🚀 Alias fetchUser
+  fetchUser: async (): Promise<User> => {
+    const response = await api.get('/users/me', { withCredentials: true })
+    return response.data
+  },
+
+
 }
+
