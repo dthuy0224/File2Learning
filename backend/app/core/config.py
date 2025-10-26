@@ -1,9 +1,8 @@
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Optional
-import os
 from pathlib import Path
-
+import os
 
 class Settings(BaseSettings):
     # Basic app config
@@ -15,34 +14,34 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
-    # Database Configuration - PostgreSQL Setup
-    # ===========================================
-    # Default: PostgreSQL with dedicated user for production-ready setup
-    # User: app_user (created specifically for this application)
-    # Password: app_password (development only - change in production)
-    # Database: file2learning (created in PostgreSQL container)
+    # Database
     DATABASE_URL: str = "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning"
-
-    # PostgreSQL configuration - can be overridden via environment variable
-    POSTGRESQL_DATABASE_URL: Optional[str] = None  # PostgreSQL URL for production
-
-    # PostgreSQL configuration - can be overridden via environment variable
+    POSTGRESQL_DATABASE_URL: Optional[str] = None  # can override in prod
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        # Log database configuration
-        print(f"📊 Database Configuration:")
+        # Log db config (optional)
+        print("📊 Database Configuration:")
         print(f"   URL: {self.DATABASE_URL}")
         print(f"   Type: PostgreSQL")
         print(f"   Database: file2learning")
     
-    # CORS
-    ALLOWED_HOSTS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # CORS / Hosts
+    ALLOWED_HOSTS: List[str] = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
+
+    # Frontend URL 
+    FRONTEND_URL: str = "http://localhost:3000"
     
     # AI/OpenAI
     OPENAI_API_KEY: Optional[str] = None
     
-    # Redis (for caching and sessions)
+    # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
     # File uploads
@@ -50,23 +49,29 @@ class Settings(BaseSettings):
     UPLOAD_FOLDER: str = "uploads"
     ALLOWED_FILE_EXTENSIONS: List[str] = [".pdf", ".docx", ".txt", ".doc"]
     
-    # Email (for notifications)
-    SMTP_SERVER: Optional[str] = None
-    SMTP_PORT: int = 587
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
+    # Email
+    SMTP_SERVER: Optional[str] = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+    SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
+    SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
+    SMTP_FROM_EMAIL: Optional[str] = os.getenv("SMTP_FROM_EMAIL")
+
 
     # OAuth providers
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: Optional[str] = None
     MICROSOFT_CLIENT_ID: Optional[str] = None
     MICROSOFT_CLIENT_SECRET: Optional[str] = None
+    MICROSOFT_REDIRECT_URI: Optional[str] = None
     GITHUB_CLIENT_ID: Optional[str] = None
     GITHUB_CLIENT_SECRET: Optional[str] = None
+    GITHUB_REDIRECT_URI: Optional[str] = None
 
-    # OAuth base URL for callbacks
+    # OAuth base URL
     OAUTH_BASE_URL: str = "http://localhost:8000"
     
+    # Validators
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str]) -> str:
@@ -88,7 +93,6 @@ class Settings(BaseSettings):
     }
 
     def get_database_info(self) -> dict:
-        """Get database configuration information"""
         return {
             "type": "PostgreSQL",
             "database": "file2learning",

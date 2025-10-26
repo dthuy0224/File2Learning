@@ -22,22 +22,24 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: async (tokenData) => {
-      // Set token first (user data will be fetched later)
-      login(tokenData.access_token, null as any)
+      try {
+        // ✅ Lấy user data sau khi login
+        const userData = await authService.fetchUser()
 
-      // Wait a bit for token to be persisted, then fetch user data
-      setTimeout(async () => {
-        try {
-          const userData = await authService.fetchUser()
-          login(tokenData.access_token, userData)
-        } catch (fetchError: any) {
-          console.warn('Could not fetch user data:', fetchError)
-          // Continue with login even if user data fetch fails
+        login(tokenData.access_token, userData)
+        toast.success('Welcome back!')
+        
+        // ✅ Kiểm tra nếu user chưa setup thì điều hướng
+        if (userData.needs_setup) {
+          navigate('/setup-learning');
+        } else {
+          navigate('/dashboard');
         }
-      }, 100)
-
-      toast.success('Welcome back!')
-      navigate('/dashboard')
+      } catch (error: any) {
+        console.error('Error after login:', error);
+        toast.error(error.response?.data?.detail || 'Failed to get user data');
+        login(tokenData.access_token, null);
+      }
     },
     onError: (error: any) => {
       console.error('Login error:', error)
@@ -178,7 +180,14 @@ export default function LoginPage() {
                 {errors.password && (
                   <p className="text-sm text-red-600">{errors.password.message}</p>
                 )}
-              </div>
+                {/* Forgot Password Link */}
+  <div className="text-right mt-1">
+    <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+      Forgot Password?
+    </Link>
+  </div>
+</div>
+              
 
               <Button
                 type="submit"
