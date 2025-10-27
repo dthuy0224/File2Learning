@@ -15,7 +15,6 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(__file__))
 
 async def test_ai_service():
-    """Test the multi-AI service with all providers"""
     from app.services.multi_ai_service import multi_ai_service
     
     print("=" * 60)

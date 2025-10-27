@@ -21,7 +21,6 @@ class ActivityHeatmapPoint(BaseModel):
 
 
 class PerformanceHistoryPoint(BaseModel):
-    """Single point in performance history"""
     date: date
     accuracy: float
     quizzes_completed: int

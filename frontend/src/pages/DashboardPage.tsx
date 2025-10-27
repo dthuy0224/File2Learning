@@ -1,11 +1,21 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { useAuthStore } from '../store/authStore'
-import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2 } from 'lucide-react'
-import { useUserStats } from '../hooks/useProgress'
-import { useRecentActivities } from '../hooks/useProgress'
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { useAuthStore } from "../store/authStore"
+import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2 } from "lucide-react"
+import { useUserStats } from "../hooks/useProgress"
+import { useRecentActivities } from "../hooks/useProgress"
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
+
+  // 🧭 Nếu user chưa setup-learning → chuyển hướng
+  useEffect(() => {
+    if (!user?.learning_goals || user.learning_goals.length === 0) {
+      navigate("/setup-learning")
+    }
+  }, [user, navigate])
 
   // Use React Query hooks to get real data
   const { data: userStats, isLoading: statsLoading } = useUserStats(30)
@@ -14,37 +24,37 @@ export default function DashboardPage() {
   // Transform user stats into dashboard format
   const stats = [
     {
-      title: 'Documents',
-      value: userStats?.documents_processed?.toString() || '0',
-      description: 'Documents processed',
+      title: "Documents",
+      value: userStats?.documents_processed?.toString() || "0",
+      description: "Documents processed",
       icon: FileText,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50'
+      color: "text-blue-600",
+      bg: "bg-blue-50",
     },
     {
-      title: 'Flashcards',
-      value: userStats?.words_mastered?.toString() || '0',
-      description: 'Cards mastered',
+      title: "Flashcards",
+      value: userStats?.words_mastered?.toString() || "0",
+      description: "Cards mastered",
       icon: CreditCard,
-      color: 'text-green-600',
-      bg: 'bg-green-50'
+      color: "text-green-600",
+      bg: "bg-green-50",
     },
     {
-      title: 'Quizzes',
-      value: userStats?.total_quizzes_completed?.toString() || '0',
-      description: 'Quizzes completed',
+      title: "Quizzes",
+      value: userStats?.total_quizzes_completed?.toString() || "0",
+      description: "Quizzes completed",
       icon: Brain,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50'
+      color: "text-purple-600",
+      bg: "bg-purple-50",
     },
     {
-      title: 'Progress',
-      value: `${userStats?.avg_accuracy?.toFixed(0) || '0'}%`,
-      description: 'Overall accuracy',
+      title: "Progress",
+      value: `${userStats?.avg_accuracy?.toFixed(0) || "0"}%`,
+      description: "Overall accuracy",
       icon: TrendingUp,
-      color: 'text-orange-600',
-      bg: 'bg-orange-50'
-    }
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+    },
   ]
 
   return (
@@ -153,15 +163,17 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {user?.learning_goals?.map((goal, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium capitalize">{goal}</span>
+              {user?.learning_goals?.length ? (
+                user.learning_goals.map((goal, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium capitalize">{goal}</span>
+                    </div>
+                    <span className="text-xs text-gray-500">In Progress</span>
                   </div>
-                  <span className="text-xs text-gray-500">In Progress</span>
-                </div>
-              )) || (
+                ))
+              ) : (
                 <p className="text-sm text-gray-500">No learning goals set</p>
               )}
             </div>
