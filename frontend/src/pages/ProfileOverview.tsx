@@ -38,6 +38,7 @@ interface UserProfile {
   daily_study_time?: number
   difficulty_preference?: string
   created_at?: string
+  avatar_url?: string
   oauth_avatar?: string
   oauth_provider?: string
   is_oauth_account?: boolean
@@ -160,6 +161,7 @@ export default function ProfileOverviewFull() {
     : user.username?.[0]?.toUpperCase() || 'U'
 
   const joinedDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'
+  const avatarSrc = user.avatar_url || user.oauth_avatar
 
   // --- Handlers ---
   async function handleEditSubmit(e?: React.FormEvent) {
@@ -204,29 +206,41 @@ export default function ProfileOverviewFull() {
   }
 
   async function handleUploadAvatar(file: File) {
-  if (!file) {
-    toast.error('Chưa chọn file')
-    return
+    if (!file) {
+      toast.error('Chưa chọn file')
+      return
+    }
+
+    try {
+      const updatedUser = await userService.uploadAvatar(file)
+
+      const normalized = {
+        ...updatedUser,
+        oauth_avatar: updatedUser.oauth_avatar ?? updatedUser.avatar_url ?? undefined,
+        avatar_url: updatedUser.avatar_url ?? updatedUser.oauth_avatar ?? undefined,
+      }
+
+      setUser((prev) => {
+        const base = prev ?? ({} as UserProfile)
+        return {
+          ...base,
+          ...normalized,
+        }
+      })
+
+      const { updateUser } = useAuthStore.getState()
+      updateUser(normalized)
+
+      toast.success('Tải avatar thành công!')
+      setMessage('Tải avatar thành công')
+      setShowUploadModal(false)
+      setAvatarFile(null)
+    } catch (err: any) {
+      console.error('❌ Upload avatar failed:', err)
+      toast.error(err?.response?.data?.detail || 'Upload thất bại')
+      setError(err?.response?.data?.detail || 'Upload thất bại')
+    }
   }
-
-  try {
-    const updatedUser = await userService.uploadAvatar(file)
-
-    // ✅ Cập nhật Zustand ngay sau upload
-    const { updateUser } = useAuthStore.getState()
-    updateUser(updatedUser)
-
-    // ✅ Hiển thị thông báo và đóng modal
-    toast.success('Tải avatar thành công!')
-    setMessage('Tải avatar thành công')
-    setShowUploadModal(false)
-    setAvatarFile(null)
-  } catch (err: any) {
-    console.error('❌ Upload avatar failed:', err)
-    toast.error(err?.response?.data?.detail || 'Upload thất bại')
-    setError(err?.response?.data?.detail || 'Upload thất bại')
-  }
-}
 
   function openEdit() {
     setEditForm({
@@ -307,8 +321,8 @@ export default function ProfileOverviewFull() {
 
       <div className="profile-card">
         <div className="avatar" aria-hidden>
-          {user.oauth_avatar ? (
-            <img src={user.oauth_avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
           ) : (
             <span>{displayInitials}</span>
           )}

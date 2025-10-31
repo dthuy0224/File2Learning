@@ -134,22 +134,22 @@ def upload_avatar(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    current_user.avatar = filename
-    db.add(current_user)
-    db.commit()
-    db.refresh(current_user)
-
     avatar_url = f"http://localhost:8000/static/avatars/{filename}"
+    updated_user = crud_user.upload_avatar(db, user_id=current_user.id, avatar_url=avatar_url)
+    if not updated_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not update avatar")
+
     return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "username": current_user.username,
-        "full_name": current_user.full_name,
+        "id": updated_user.id,
+        "email": updated_user.email,
+        "username": updated_user.username,
+        "full_name": updated_user.full_name,
+        "oauth_avatar": updated_user.oauth_avatar,
         "avatar_url": avatar_url,
-        "learning_goals": current_user.learning_goals,
-        "difficulty_preference": current_user.difficulty_preference,
-        "daily_study_time": current_user.daily_study_time,
-        "created_at": current_user.created_at,
+        "learning_goals": updated_user.learning_goals,
+        "difficulty_preference": updated_user.difficulty_preference,
+        "daily_study_time": updated_user.daily_study_time,
+        "created_at": updated_user.created_at,
     }
 
 

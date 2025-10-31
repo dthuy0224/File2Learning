@@ -11,6 +11,7 @@ export interface User {
   learning_goals: string[]
   difficulty_preference: string
   daily_study_time: number
+  avatar_url?: string
   oauth_avatar?: string
   created_at?: string
 }
