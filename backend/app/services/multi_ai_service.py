@@ -9,6 +9,12 @@ import json
 import logging
 from typing import Dict, List, Optional, Literal
 from enum import Enum
+from dotenv import load_dotenv, find_dotenv
+
+# Load environment variables (single source: project root .env if running locally)
+_root_env = find_dotenv(filename=".env", usecwd=True)
+if _root_env:
+    load_dotenv(_root_env)
 
 logger = logging.getLogger(__name__)
 

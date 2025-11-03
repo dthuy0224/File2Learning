@@ -69,7 +69,7 @@ export const userService = {
 
   // 🚀 Reset password
   resetPassword: async (token: string, newPassword: string) => {
-    return api.post('/api/v1/auth/reset-password', { token, new_password: newPassword })
+    return api.post('/auth/reset-password', { token, new_password: newPassword })
   }
 
 }

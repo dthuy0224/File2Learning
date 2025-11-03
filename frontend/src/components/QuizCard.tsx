@@ -84,7 +84,13 @@ export default function QuizCard({ quiz, onDelete, onStart }: QuizCardProps) {
         </div>
 
         <div className="mt-4 flex space-x-2"> {/* This part will be pushed to the bottom */}
-          <Button size="sm" variant="outline">Preview</Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => navigate(`/quizzes/${quiz.id}/take`)}
+          >
+            Preview
+          </Button>
           <Button
             size="sm"
             className="flex items-center space-x-1"

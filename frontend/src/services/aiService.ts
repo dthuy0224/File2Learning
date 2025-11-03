@@ -103,22 +103,22 @@ export interface ChatResponse {
 export class AIService {
   // Document operations
   static async getDocuments(): Promise<Document[]> {
-    const response = await api.get('/v1/documents/')
+    const response = await api.get('/documents/')
     return response.data
   }
 
   static async getDocument(documentId: number): Promise<Document> {
-    const response = await api.get(`/v1/documents/${documentId}`)
+    const response = await api.get(`/documents/${documentId}`)
     return response.data
   }
 
   static async getDocumentStatus(documentId: number): Promise<DocumentStatus> {
-    const response = await api.get(`/v1/documents/${documentId}/status`)
+    const response = await api.get(`/documents/${documentId}/status`)
     return response.data
   }
 
   static async getDocumentsStatusBatch(documentIds: string): Promise<{documents: Record<string, DocumentStatus>}> {
-    const response = await api.get(`/v1/documents/status/batch?document_ids=${documentIds}`)
+    const response = await api.get(`/documents/status/batch?document_ids=${documentIds}`)
     return response.data
   }
 
@@ -126,7 +126,7 @@ export class AIService {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await api.post('/v1/documents/upload', formData, {
+    const response = await api.post('/documents/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -140,7 +140,7 @@ export class AIService {
     quizType: 'mcq' | 'fill_blank' | 'mixed' = 'mixed',
     numQuestions: number = 5
   ): Promise<QuizResponse> {
-    const response = await api.post(`/v1/ai/${documentId}/generate-quiz`, null, {
+    const response = await api.post(`/ai/${documentId}/generate-quiz`, null, {
       params: {
         quiz_type: quizType,
         num_questions: numQuestions,
@@ -153,7 +153,7 @@ export class AIService {
     documentId: number,
     numCards: number = 10
   ): Promise<FlashcardResponse> {
-    const response = await api.post(`/v1/ai/${documentId}/generate-flashcards`, null, {
+    const response = await api.post(`/ai/${documentId}/generate-flashcards`, null, {
       params: {
         num_cards: numCards,
       },
@@ -165,7 +165,7 @@ export class AIService {
     documentId: number,
     maxLength: number = 300
   ): Promise<SummaryResponse> {
-    const response = await api.post(`/v1/ai/${documentId}/generate-summary`, null, {
+    const response = await api.post(`/ai/${documentId}/generate-summary`, null, {
       params: {
         max_length: maxLength,
       },
@@ -175,23 +175,23 @@ export class AIService {
 
   // Utility functions
   static async getAvailableModels(): Promise<{models: Array<{name: string, description: string, size: string}>, default_model: string}> {
-    const response = await api.get('/v1/ai/models')
+    const response = await api.get('/ai/models')
     return response.data
   }
 
   static async testAIConnection(): Promise<{status: string, message: string, model?: string}> {
-    const response = await api.post('/v1/ai/test-connection')
+    const response = await api.post('/ai/test-connection')
     return response.data
   }
 
   // Document management
   static async getDocumentContent(documentId: number): Promise<{document_id: number, title: string, content: string, word_count: number, document_type: string, created_at: string}> {
-    const response = await api.get(`/v1/documents/${documentId}/content`)
+    const response = await api.get(`/documents/${documentId}/content`)
     return response.data
   }
 
   static async deleteDocument(documentId: number): Promise<{message: string}> {
-    const response = await api.delete(`/v1/documents/${documentId}`)
+    const response = await api.delete(`/documents/${documentId}`)
     return response.data
   }
 
@@ -222,7 +222,7 @@ export class AIService {
     query: string,
     history: ChatMessage[] = []
   ): Promise<ChatResponse> {
-    const response = await api.post(`/v1/ai/${documentId}/chat`, {
+    const response = await api.post(`/ai/${documentId}/chat`, {
       query,
       history,
     })
@@ -231,7 +231,7 @@ export class AIService {
 
   // Document creation operations
   static async createDocumentFromTopic(topic: string): Promise<Document> {
-    const response = await api.post('/v1/documents/from-topic', { topic })
+    const response = await api.post('/documents/from-topic', { topic })
     return response.data
   }
 }

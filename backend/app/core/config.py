@@ -3,6 +3,13 @@ from pydantic_settings import BaseSettings
 from typing import List, Optional
 from pathlib import Path
 import os
+from dotenv import load_dotenv, find_dotenv
+
+# Single-source env loading: prefer OS env (e.g., Docker). If running locally,
+# load the project root .env by searching upwards from CWD.
+_root_env = find_dotenv(filename=".env", usecwd=True)
+if _root_env:
+    load_dotenv(_root_env)
 
 class Settings(BaseSettings):
     # Basic app config
@@ -87,7 +94,6 @@ class Settings(BaseSettings):
         return str(upload_path)
 
     model_config = {
-        "env_file": ".env",
         "case_sensitive": True,
         "extra": "allow"
     }
