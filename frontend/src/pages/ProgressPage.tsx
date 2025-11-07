@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-// import { Badge } from '@/components/ui/badge' // TODO: Fix Badge import issue
 import { Flame, BrainCircuit, Target, Clock, TrendingUp, Calendar, Activity, Award, Loader2 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 import CalendarHeatmap from 'react-calendar-heatmap'

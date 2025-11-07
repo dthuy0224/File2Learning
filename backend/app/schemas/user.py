@@ -111,9 +111,24 @@ class AvatarUploadResponse(BaseModel):
     avatar_url: str
 
 
+class ProgressOverTime(BaseModel):
+    month: str
+    progress: int
+
+class RetentionDataItem(BaseModel):
+    name: str
+    value: int
+
+class QuizByTopic(BaseModel):
+    topic: str
+    score: float
+
 class LearningAnalytics(BaseModel):
     words_learned: int
     retention_rate: float
-    average_quiz_score: float
-    learning_progress: float
+    avg_quiz_score: float
+    progress: float
     active_days: int
+    progress_over_time: List[ProgressOverTime]
+    retention_data: List[RetentionDataItem]
+    quiz_by_topic: List[QuizByTopic]
