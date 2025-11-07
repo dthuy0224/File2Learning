@@ -189,11 +189,13 @@ def get_user_stats(
     # Study streak calculation (consecutive days with activity)
     study_streak = _calculate_study_streak(db, current_user.id, start_date)
 
-    # Words mastered (flashcards with high ease factor and repetitions)
+    # Words mastered (flashcards with good retention - revised easier criteria)
+    # A word is "mastered" if user has reviewed it successfully at least 2 times
+    # and maintains a decent ease factor (>= 2.0, not just default 2.5)
     words_mastered = db.query(func.count(Flashcard.id)).filter(
         Flashcard.owner_id == current_user.id,
-        Flashcard.ease_factor >= 2.5,
-        Flashcard.repetitions >= 3
+        Flashcard.ease_factor >= 2.0,  # Lowered from 2.5 to be more forgiving
+        Flashcard.repetitions >= 2      # Lowered from 3 to 2 successful reviews
     ).scalar()
 
     # Average accuracy from quiz attempts
@@ -213,7 +215,8 @@ def get_user_stats(
     ).scalar() or 0
 
     # Estimate flashcard review time (30 seconds per review)
-    flashcard_reviews = db.query(func.count(Flashcard.id)).filter(
+    # Count total number of reviews, not just number of flashcards
+    flashcard_reviews = db.query(func.sum(Flashcard.times_reviewed)).filter(
         Flashcard.owner_id == current_user.id,
         Flashcard.updated_at >= start_date
     ).scalar() or 0
@@ -227,7 +230,7 @@ def get_user_stats(
         QuizAttempt.is_completed == True
     ).scalar()
 
-    # Total flashcards reviewed
+    # Total flashcards reviewed (same value as flashcard_reviews - total review count)
     total_flashcards_reviewed = flashcard_reviews
 
     # Documents processed

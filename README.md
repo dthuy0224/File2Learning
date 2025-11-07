@@ -54,7 +54,7 @@ cp .env.example .env
 docker-compose up -d
 
 # Access application
-# Frontend: http://localhost:5173
+# Frontend: http://localhost:3000
 # Backend API: http://localhost:8000
 
 # Test AI connection
