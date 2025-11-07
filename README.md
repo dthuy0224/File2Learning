@@ -5,7 +5,7 @@ AI-powered learning platform that transforms documents into interactive learning
 ## ✨ Key Features
 
 - **Smart Document Processing** - Upload PDFs, Word docs, or text files for instant analysis
-- **AI Content Generation** - Auto-generate quizzes, flashcards using Gemini/Groq (FREE & Fast)
+- **AI Content Generation** - Auto-generate quizzes, flashcards using Google Gemini & Groq (FREE & Fast)
 - **Interactive Learning** - Spaced repetition system with progress tracking
 - **AI Chatbot Assistant** - Real-time help with vocabulary and grammar
 - **FREE AI** - Google Gemini + Groq API, zero cost for students
@@ -13,7 +13,7 @@ AI-powered learning platform that transforms documents into interactive learning
 ## 🛠️ Tech Stack
 
 **Backend:** FastAPI · PostgreSQL · SQLAlchemy · Redis · Celery  
-**AI:** Google Gemini · Groq · Ollama (Multi-provider, 100% FREE)  
+**AI:** Google Gemini · Groq (Multi-provider, 100% FREE)  
 **Frontend:** React · TypeScript · Tailwind CSS · shadcn/ui
 
 ## 🚀 Quick Start
