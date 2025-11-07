@@ -1,6 +1,6 @@
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
-from typing import List, Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict, EnvSettingsSource
+from typing import List, Optional, Union, Any, Dict
 from pathlib import Path
 import os
 from dotenv import load_dotenv, find_dotenv
@@ -10,6 +10,38 @@ from dotenv import load_dotenv, find_dotenv
 _root_env = find_dotenv(filename=".env", usecwd=True)
 if _root_env:
     load_dotenv(_root_env)
+
+
+class CustomEnvSettingsSource(EnvSettingsSource):
+    """Custom env source that handles comma-separated strings for List fields"""
+    
+    def __call__(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {}
+        for field_name, field_info in self.settings_cls.model_fields.items():
+            env_val: str | None = os.getenv(field_name, None)
+            if env_val is not None:
+                # For List fields, don't try to parse as JSON if it's comma-separated
+                # Check if field type is List
+                field_type = field_info.annotation
+                if field_type:
+                    # Handle typing.List and list
+                    try:
+                        import typing
+                        if hasattr(typing, 'get_origin'):
+                            origin = typing.get_origin(field_type)
+                        else:
+                            origin = getattr(field_type, '__origin__', None)
+                        
+                        if origin is list or origin is List:
+                            # If it's a list field and value doesn't look like JSON, keep as string
+                            # The validator will handle the parsing
+                            if not (env_val.strip().startswith('[') and env_val.strip().endswith(']')):
+                                d[field_name] = env_val
+                                continue
+                    except Exception:
+                        pass
+                d[field_name] = env_val
+        return d
 
 class Settings(BaseSettings):
     # Basic app config
@@ -28,18 +60,18 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Log db config (optional)
-        print("📊 Database Configuration:")
+        print("Database Configuration:")
         print(f"   URL: {self.DATABASE_URL}")
         print(f"   Type: PostgreSQL")
         print(f"   Database: file2learning")
     
     # CORS / Hosts
     ALLOWED_HOSTS: List[str] = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-]
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ]
 
 
     # Frontend URL 
@@ -54,7 +86,7 @@ class Settings(BaseSettings):
     # File uploads
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
     UPLOAD_FOLDER: str = "uploads"
-    ALLOWED_FILE_EXTENSIONS: List[str] = [".pdf", ".docx", ".txt", ".doc"]
+    ALLOWED_FILE_EXTENSIONS: List[str] = [".pdf", ".docx", ".txt", ".doc", ".docs"]
     
     # Email
     SMTP_SERVER: Optional[str] = os.getenv("SMTP_HOST", "smtp.gmail.com")
@@ -92,11 +124,62 @@ class Settings(BaseSettings):
         upload_path = Path(v)
         upload_path.mkdir(exist_ok=True)
         return str(upload_path)
+    
+    @field_validator("ALLOWED_HOSTS", mode="before")
+    @classmethod
+    def parse_allowed_hosts(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse ALLOWED_HOSTS from comma-separated string or list"""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            # Handle empty string
+            if not v.strip():
+                return []
+            # Split by comma and strip whitespace
+            return [host.strip() for host in v.split(",") if host.strip()]
+        elif isinstance(v, list):
+            return v
+        return []
+    
+    @field_validator("ALLOWED_FILE_EXTENSIONS", mode="before")
+    @classmethod
+    def parse_allowed_extensions(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse ALLOWED_FILE_EXTENSIONS from comma-separated string or list"""
+        if v is None:
+            return [".pdf", ".docx", ".txt", ".doc", ".docs"]
+        if isinstance(v, str):
+            # Handle empty string
+            if not v.strip():
+                return [".pdf", ".docx", ".txt", ".doc", ".docs"]
+            # Split by comma and strip whitespace
+            return [ext.strip() for ext in v.split(",") if ext.strip()]
+        elif isinstance(v, list):
+            return v
+        return [".pdf", ".docx", ".txt", ".doc", ".docs"]
 
-    model_config = {
-        "case_sensitive": True,
-        "extra": "allow"
-    }
+    model_config = SettingsConfigDict(
+        case_sensitive=True,
+        extra="allow",
+        env_parse_none_str="",
+        env_ignore_empty=True
+    )
+    
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        # Use custom env source that handles comma-separated strings
+        return (
+            init_settings,
+            CustomEnvSettingsSource(settings_cls),
+            dotenv_settings,
+            file_secret_settings,
+        )
 
     def get_database_info(self) -> dict:
         return {

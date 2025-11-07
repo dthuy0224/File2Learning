@@ -145,11 +145,19 @@ def login_access_token(
     Login with email/password (OAuth2 password flow form).
     Sets HttpOnly cookie 'access_token' AND returns token JSON for compatibility.
     """
+    logger.info(f"Login attempt for email: {form_data.username}")
     user_obj = crud_user.authenticate(db, email=form_data.username, password=form_data.password)
     if not user_obj:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+        logger.warning(f"Authentication failed for email: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Incorrect email or password. If you signed up with OAuth, please use OAuth login instead."
+        )
     if not crud_user.is_active(user_obj):
+        logger.warning(f"Inactive user attempted login: {form_data.username}")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    
+    logger.info(f"Successful login for user: {user_obj.email} (ID={user_obj.id})")
 
     access_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt = security.create_access_token(subject=str(user_obj.id), expires_delta=access_expires)

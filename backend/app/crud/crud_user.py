@@ -62,16 +62,27 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     # ===== AUTH =====
     def authenticate(self, db: Session, *, email: str, password: str) -> Optional[User]:
+        """
+        Authenticate user with email and password.
+        OAuth accounts cannot login with password - they must use OAuth flow.
+        """
         user = self.get_by_email(db, email=email)
         if not user:
             return None
 
+        # OAuth accounts cannot login with password
         if user.is_oauth_account:
-            return user
-
-        if not user.hashed_password or not verify_password(password, user.hashed_password):
             return None
 
+        # Check if user has a password set
+        if not user.hashed_password:
+            return None
+
+        # Verify password
+        if not verify_password(password, user.hashed_password):
+            return None
+
+        # Update last login
         user.last_login = datetime.utcnow()
         db.commit()
         return user

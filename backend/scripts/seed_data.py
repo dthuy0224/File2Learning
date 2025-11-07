@@ -252,51 +252,51 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
 
 def seed_database():
     """Main seeding function"""
-    print("🌱 Starting database seeding...")
+    print("Starting database seeding...")
     
     db = SessionLocal()
     try:
         # Check if data already exists
         if db.query(User).count() > 0:
-            print("❌ Database already contains data. Skipping seed.")
+            print("Database already contains data. Skipping seed.")
             return
-        
-        print("👤 Creating sample users...")
+
+        print("Creating sample users...")
         users = create_sample_users(db)
-        print(f"✅ Created {len(users)} users")
-        
-        print("📄 Creating sample documents...")
+        print(f"Created {len(users)} users")
+
+        print("Creating sample documents...")
         documents = create_sample_documents(db, users)
-        print(f"✅ Created {len(documents)} documents")
-        
-        print("🃏 Creating sample flashcards...")
+        print(f"Created {len(documents)} documents")
+
+        print("Creating sample flashcards...")
         create_sample_flashcards(db, users, documents)
         flashcard_count = db.query(Flashcard).count()
-        print(f"✅ Created {flashcard_count} flashcards")
-        
-        print("🧠 Creating sample quizzes...")
+        print(f"Created {flashcard_count} flashcards")
+
+        print("Creating sample quizzes...")
         create_sample_quizzes(db, users, documents)
         quiz_count = db.query(Quiz).count()
         question_count = db.query(QuizQuestion).count()
         attempt_count = db.query(QuizAttempt).count()
-        print(f"✅ Created {quiz_count} quizzes with {question_count} questions and {attempt_count} attempts")
-        
-        print("🎉 Database seeding completed successfully!")
-        print("\n📊 Summary:")
+        print(f"Created {quiz_count} quizzes with {question_count} questions and {attempt_count} attempts")
+
+        print("Database seeding completed successfully!")
+        print("\nSummary:")
         print(f"  Users: {len(users)}")
         print(f"  Documents: {len(documents)}")
         print(f"  Flashcards: {flashcard_count}")
         print(f"  Quizzes: {quiz_count}")
         print(f"  Quiz Questions: {question_count}")
         print(f"  Quiz Attempts: {attempt_count}")
-        
-        print("\n🔐 Login credentials:")
+
+        print("\nLogin credentials:")
         print("  john@example.com / password123")
         print("  mary@example.com / password123")
         print("  admin@example.com / admin123")
-        
+
     except Exception as e:
-        print(f"❌ Error during seeding: {e}")
+        print(f"Error during seeding: {e}")
         db.rollback()
         raise
     finally:

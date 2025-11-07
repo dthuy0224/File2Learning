@@ -299,7 +299,7 @@ def get_activity_heatmap(
     result = []
     for date_str, count in activity_map.items():
         result.append(ActivityHeatmapPoint(
-            date=datetime.fromisoformat(date_str).date(),
+            date=date_str,  # Return as string to match frontend expectation
             count=min(count, 10)  # Cap at 10 for better visualization
         ))
 
@@ -339,7 +339,7 @@ def get_performance_history(
     for perf in daily_performance:
         if perf.avg_accuracy is not None:
             result.append(PerformanceHistoryPoint(
-                date=perf.date,
+                date=perf.date.isoformat(),  # Convert to ISO string format
                 accuracy=round(float(perf.avg_accuracy), 1),
                 quizzes_completed=perf.quizzes_completed,
                 avg_score=round(float(perf.avg_score), 1)

@@ -28,9 +28,12 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # CORS middleware
 origins = [
-    "http://localhost:3000",  # frontend
+    "http://localhost:3000",  # frontend (Next.js default)
     "http://127.0.0.1:3000",
-    "http://localhost:3001", 
+    "http://localhost:5173",  # Vite default port
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",  # Vite alternative port
+    "http://127.0.0.1:5174",
 ]
 
 app.add_middleware(
