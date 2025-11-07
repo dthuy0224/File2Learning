@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from './ui/button';
 import { Flashcard } from '../services/flashcardService';
+import MarkdownText from './MarkdownText';
 
 // Helper function to shuffle array
 const shuffleArray = (array: any[]) => [...array].sort(() => Math.random() - 0.5);
@@ -19,7 +20,9 @@ export default function PracticeModal({ card, allCards, onClose }: PracticeModal
   const { question, options } = useMemo(() => {
     if (!card) return { question: '', options: [] };
 
-    const questionText = `Which word means: "${card.back_text}"?`;
+    // Strip markdown for question text
+    const stripMarkdown = (text: string) => text.replace(/[*_`]/g, '');
+    const questionText = `Which word means: "${stripMarkdown(card.back_text)}"?`;
 
     // Get 3 random wrong answers
     const otherOptions = allCards
@@ -56,15 +59,19 @@ export default function PracticeModal({ card, allCards, onClose }: PracticeModal
               className="w-full justify-start"
               onClick={() => { setSelectedAnswer(option); setIsCorrect(null); }}
             >
-              {option}
+              <MarkdownText>{option}</MarkdownText>
             </Button>
           ))}
         </div>
 
         {isCorrect !== null && (
-            <p className={`mt-4 font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                {isCorrect ? 'Correct!' : `Wrong! The correct answer is: ${card.front_text}`}
-            </p>
+            <div className={`mt-4 font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                {isCorrect ? 'Correct!' : (
+                  <span>
+                    Wrong! The correct answer is: <MarkdownText>{card.front_text}</MarkdownText>
+                  </span>
+                )}
+            </div>
         )}
 
         <div className="mt-6 flex justify-end space-x-2">

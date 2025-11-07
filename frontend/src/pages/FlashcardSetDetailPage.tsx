@@ -8,6 +8,7 @@ import { Layers, RotateCcw, Play, ArrowLeft, BookOpen, Clock, Target } from 'luc
 import FlashcardService, { Flashcard, FlashcardSet } from '../services/flashcardService'
 import PracticeModal from '../components/PracticeModal'
 import FlashcardViewModal from '../components/FlashcardViewModal'
+import MarkdownText from '../components/MarkdownText'
 
 export default function FlashcardSetDetailPage() {
   const { setId } = useParams<{ setId: string }>()
@@ -176,10 +177,10 @@ export default function FlashcardSetDetailPage() {
               <CardContent className="pt-0">
                 <div className="space-y-2">
                   <div className="font-medium text-sm text-gray-900 line-clamp-2">
-                    {card.front_text}
+                    <MarkdownText>{card.front_text}</MarkdownText>
                   </div>
                   <div className="text-sm text-gray-600 line-clamp-3">
-                    {card.back_text}
+                    <MarkdownText>{card.back_text}</MarkdownText>
                   </div>
 
                   {card.next_review_date && (

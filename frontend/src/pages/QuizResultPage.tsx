@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
+import MarkdownText from '../components/MarkdownText'
 import {
   CheckCircle,
   XCircle,
@@ -203,8 +204,25 @@ export default function QuizResultPage() {
     )
   }
 
-  const totalQuestions = Object.keys(attempt.answers).length
-  const correctAnswers = Object.values(attempt.answers).filter(answer => answer.is_correct).length
+  const totalQuestions = Object.keys(attempt.answers || {}).length
+  const correctAnswers = Object.values(attempt.answers || {}).filter(answer => answer.is_correct).length
+
+  // Show warning if no answers recorded
+  if (totalQuestions === 0) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No answers recorded</h3>
+          <p className="text-gray-600">This quiz attempt has no recorded answers.</p>
+          <Button className="mt-4" onClick={() => navigate('/quizzes')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Quizzes
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -390,9 +408,13 @@ export default function QuizResultPage() {
                       </div>
                       <div className="bg-white p-3 rounded border-2 border-green-300">
                         <div className="font-medium text-green-800 mb-2">Front:</div>
-                        <div className="text-green-700 mb-3">{previewFlashcard.front_text}</div>
+                        <div className="text-green-700 mb-3">
+                          <MarkdownText>{previewFlashcard.front_text}</MarkdownText>
+                        </div>
                         <div className="font-medium text-green-800 mb-2">Back:</div>
-                        <div className="text-green-700">{previewFlashcard.back_text}</div>
+                        <div className="text-green-700">
+                          <MarkdownText>{previewFlashcard.back_text}</MarkdownText>
+                        </div>
                       </div>
                       <div className="text-xs text-green-600 mt-2">
                         Creating flashcard...

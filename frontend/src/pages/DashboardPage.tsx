@@ -10,7 +10,6 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
-  // 🧭 Nếu user chưa setup-learning → chuyển hướng
   useEffect(() => {
     if (!user?.learning_goals || user.learning_goals.length === 0) {
       navigate("/setup-learning")

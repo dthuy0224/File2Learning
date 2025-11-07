@@ -421,14 +421,16 @@ Questions:"""
 
     def _build_flashcard_prompt(self, text: str, num_cards: int) -> str:
         """Build prompt for flashcard generation"""
-        return f"""Extract {num_cards} important vocabulary words/phrases from the following text and create flashcards:
+        return f"""Extract {num_cards} important vocabulary words/phrases from the following text and create flashcards.
 
 Text: {text}
 
 Format each flashcard as:
-Front: [Word/Phrase]
-Back: [Definition]
+Front: [Word/Phrase - use **bold** for emphasis]
+Back: [Definition - use **bold** for key terms, *italic* for examples]
 Example: [Example sentence]
+
+You can use markdown formatting (**bold**, *italic*, `code`) to emphasize important parts.
 
 Flashcards:"""
 

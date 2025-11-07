@@ -90,6 +90,7 @@ class QuizAttempt(BaseModel):
     is_completed: bool
     started_at: datetime
     completed_at: Optional[datetime]
+    quiz: Optional['Quiz'] = None  
 
     class Config:
         from_attributes = True
