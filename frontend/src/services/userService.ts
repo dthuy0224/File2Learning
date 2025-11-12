@@ -1,19 +1,5 @@
-import axios from 'axios'
+import api from './api'  // ✅ Use centralized API instance
 import { User } from '../store/authStore'
-
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
-  withCredentials: true,
-})
-
-// ✅ Thêm interceptor để tự động gửi token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
 
 export const userService = {
   async getProfile(): Promise<User> {

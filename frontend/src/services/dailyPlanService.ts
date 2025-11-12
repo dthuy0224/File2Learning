@@ -64,7 +64,7 @@ export interface CompletePlanData {
 }
 
 class DailyPlanService {
-  private baseUrl = '/api/v1/plans'
+  private baseUrl = '/plans'  // ✅ api.ts already has baseURL: '/api', proxy rewrites to '/api/v1'
 
   /**
    * ⭐ Get today's plan (most important!)

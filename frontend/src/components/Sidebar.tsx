@@ -9,8 +9,16 @@ import {
   Calendar,
   Target
 } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 
-const navigation = [
+type NavigationItem = {
+  name: string
+  href: string
+  icon: LucideIcon
+  badge?: string
+}
+
+const navigation: NavigationItem[] = [
   {
     name: 'Dashboard',
     href: '/dashboard',
@@ -20,13 +28,11 @@ const navigation = [
     name: "Today's Plan",
     href: '/today-plan',
     icon: Calendar,
-    badge: 'NEW',
   },
   {
     name: 'Learning Goals',
     href: '/learning-goals',
     icon: Target,
-    badge: 'NEW',
   },
   {
     name: 'Documents',

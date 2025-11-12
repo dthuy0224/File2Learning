@@ -19,9 +19,6 @@ export default function SocialLoginButton({
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
 
-  const API_BASE_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:8000"; // cấu hình API backend
-
   const providerConfig = {
     google: {
       name: "Google",
@@ -83,9 +80,9 @@ export default function SocialLoginButton({
 
     setIsLoading(true);
     try {
-      // gọi backend API để lấy OAuth URL
+      // gọi backend API để lấy OAuth URL (qua proxy: /api -> /api/v1)
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/auth/oauth/${provider}`
+        `/api/auth/oauth/${provider}`
       );
       if (!response.ok) {
         throw new Error("Failed to get OAuth URL");

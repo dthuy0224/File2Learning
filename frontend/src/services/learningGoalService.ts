@@ -51,7 +51,7 @@ export interface UpdateLearningGoal {
 }
 
 class LearningGoalService {
-  private baseUrl = '/api/v1/goals'
+  private baseUrl = '/goals'  // ✅ api.ts already has baseURL: '/api', proxy rewrites to '/api/v1'
 
   /**
    * Get all learning goals

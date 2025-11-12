@@ -199,7 +199,7 @@ export default function DashboardPage() {
                   <div className="bg-gray-50 rounded p-2">
                     <TrendingUp className="h-4 w-4 mx-auto text-gray-400 mb-1" />
                     <p className="text-xs text-gray-600">Progress</p>
-                    <p className="text-sm font-bold">{todayPlan.plan.completion_percentage.toFixed(0)}%</p>
+                    <p className="text-sm font-bold">{Number(todayPlan.plan.completion_percentage).toFixed(0)}%</p>
                   </div>
                 </div>
 
