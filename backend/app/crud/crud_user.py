@@ -33,7 +33,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             hashed_password=hashed_password,
             full_name=obj_in.full_name,
             is_superuser=obj_in.is_superuser,
-            learning_goals=obj_in.learning_goals,
+            legacy_learning_goals=obj_in.learning_goals,
             difficulty_preference=obj_in.difficulty_preference,
             daily_study_time=obj_in.daily_study_time,
             oauth_provider=obj_in.oauth_provider,

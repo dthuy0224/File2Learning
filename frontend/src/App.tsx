@@ -26,6 +26,8 @@ import ProgressPage from './pages/ProgressPage'
 import QuickQuizPage from './pages/QuickQuizPage'
 import FlashcardReviewPage from './pages/FlashcardReviewPage'
 import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
+import LearningGoalsPage from './pages/LearningGoalsPage'
+import TodayPlanPage from './pages/TodayPlanPage'
 
 // Components
 import Layout from './components/Layout'
@@ -46,7 +48,8 @@ function App() {
     }
 
     if (token) fetchUser()
-  }, [token, updateUser, logout])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,6 +81,28 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <DashboardPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Adaptive Learning Routes */}
+        <Route
+          path="/today-plan"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <TodayPlanPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learning-goals"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LearningGoalsPage />
               </Layout>
             </ProtectedRoute>
           }

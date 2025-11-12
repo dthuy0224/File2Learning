@@ -5,7 +5,9 @@ import {
   FileText, 
   CreditCard, 
   Brain,
-  BarChart3
+  BarChart3,
+  Calendar,
+  Target
 } from 'lucide-react'
 
 const navigation = [
@@ -13,6 +15,18 @@ const navigation = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    name: "Today's Plan",
+    href: '/today-plan',
+    icon: Calendar,
+    badge: 'NEW',
+  },
+  {
+    name: 'Learning Goals',
+    href: '/learning-goals',
+    icon: Target,
+    badge: 'NEW',
   },
   {
     name: 'Documents',
@@ -50,14 +64,21 @@ export default function Sidebar() {
                 <Link
                   to={item.href}
                   className={cn(
-                    'flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                    'flex items-center justify-between px-4 py-2 text-sm font-medium rounded-md transition-colors',
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
+                  <div className="flex items-center">
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </div>
+                  {'badge' in item && item.badge && (
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             )

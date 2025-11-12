@@ -12,15 +12,13 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
 
-    # Cho phép nullable để hỗ trợ OAuth users
     hashed_password = Column(String, nullable=True)
-   
+
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
 
-    # Learning preferences
-    learning_goals = Column(JSON, nullable=True)
+    legacy_learning_goals = Column(JSON, nullable=True)  # Old field, kept for backward compatibility
     difficulty_preference = Column(String, nullable=True)
     daily_study_time = Column(Integer, nullable=True)
     
@@ -42,3 +40,11 @@ class User(Base):
     documents = relationship("Document", back_populates="owner")
     flashcards = relationship("Flashcard", back_populates="owner")
     quiz_attempts = relationship("QuizAttempt", back_populates="user")
+    
+    # Adaptive Learning Relationships
+    learning_profile = relationship("LearningProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    learning_goals = relationship("LearningGoal", back_populates="user", cascade="all, delete-orphan")
+    study_schedules = relationship("StudySchedule", back_populates="user", cascade="all, delete-orphan")
+    daily_plans = relationship("DailyStudyPlan", back_populates="user", cascade="all, delete-orphan")
+    study_sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
+    learning_analytics = relationship("LearningAnalytics", back_populates="user", cascade="all, delete-orphan")

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Navigate, useLocation } from "react-router-dom"
 import { useAuthStore } from "../store/authStore"
 
@@ -6,9 +6,18 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const { user, login, token, fetchUser } = useAuthStore()
   const [checking, setChecking] = useState(true)
   const location = useLocation()
+  const hasChecked = useRef(false)
 
   useEffect(() => {
+    // Prevent infinite loop - only check once
+    if (hasChecked.current) {
+      setChecking(false)
+      return
+    }
+
     const checkAuth = async () => {
+      hasChecked.current = true
+      
       // ✅ Nếu chưa có user mà có token → fetch lại
       if (!user && token) {
         try {
@@ -34,7 +43,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       setChecking(false)
     }
     checkAuth()
-  }, [user, token, fetchUser, login])
+  }, [user, token])
 
   // 🔄 Hiển thị khi đang kiểm tra
   if (checking) {

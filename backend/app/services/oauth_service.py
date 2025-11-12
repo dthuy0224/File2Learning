@@ -147,7 +147,7 @@ class OAuthService:
             full_name=oauth_data.get("name", oauth_data.get("login", username)),
             is_active=True,
             is_superuser=False,
-            learning_goals=["general"],
+            legacy_learning_goals=["general"],  # Fixed: use legacy_learning_goals instead
             difficulty_preference="medium",
             daily_study_time=30,
             oauth_provider=self.provider_name,

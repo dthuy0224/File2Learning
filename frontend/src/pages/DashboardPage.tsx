@@ -1,24 +1,27 @@
-import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
 import { useAuthStore } from "../store/authStore"
-import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2 } from "lucide-react"
+import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2, Target, Calendar, Clock, ArrowRight } from "lucide-react"
 import { useUserStats } from "../hooks/useProgress"
 import { useRecentActivities } from "../hooks/useProgress"
+import dailyPlanService from "../services/dailyPlanService"
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!user?.learning_goals || user.learning_goals.length === 0) {
-      navigate("/setup-learning")
-    }
-  }, [user, navigate])
-
   // Use React Query hooks to get real data
   const { data: userStats, isLoading: statsLoading } = useUserStats(30)
   const { data: recentActivities = [] } = useRecentActivities(5)
+  
+  // ⭐ NEW: Fetch today's plan
+  const { data: todayPlan } = useQuery({
+    queryKey: ['todayPlan'],
+    queryFn: () => dailyPlanService.getTodayPlan(),
+    refetchOnWindowFocus: false
+  })
 
   // Transform user stats into dashboard format
   const stats = [
@@ -157,25 +160,84 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Learning Goals</CardTitle>
-            <CardDescription>Your current learning objectives</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Today's Study Plan 📚</CardTitle>
+                <CardDescription>Your personalized plan for today</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate('/today-plan')}
+              >
+                View Full <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {user?.learning_goals?.length ? (
-                user.learning_goals.map((goal, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm font-medium capitalize">{goal}</span>
-                    </div>
-                    <span className="text-xs text-gray-500">In Progress</span>
+            {todayPlan?.has_plan && todayPlan.plan ? (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-700">
+                    {todayPlan.plan.plan_summary || 'Your plan is ready!'}
+                  </p>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-50 rounded p-2">
+                    <Target className="h-4 w-4 mx-auto text-gray-400 mb-1" />
+                    <p className="text-xs text-gray-600">Tasks</p>
+                    <p className="text-sm font-bold">{todayPlan.plan.total_tasks_count}</p>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">No learning goals set</p>
-              )}
-            </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <Clock className="h-4 w-4 mx-auto text-gray-400 mb-1" />
+                    <p className="text-xs text-gray-600">Time</p>
+                    <p className="text-sm font-bold">{todayPlan.plan.total_estimated_minutes}m</p>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <TrendingUp className="h-4 w-4 mx-auto text-gray-400 mb-1" />
+                    <p className="text-xs text-gray-600">Progress</p>
+                    <p className="text-sm font-bold">{todayPlan.plan.completion_percentage.toFixed(0)}%</p>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {todayPlan.plan.status === 'pending' && (
+                  <Button
+                    className="w-full"
+                    onClick={() => navigate('/today-plan')}
+                  >
+                    Start Today's Plan 🚀
+                  </Button>
+                )}
+                {todayPlan.plan.status === 'in_progress' && (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => navigate('/today-plan')}
+                  >
+                    Continue Plan ({todayPlan.plan.completed_tasks_count}/{todayPlan.plan.total_tasks_count} done)
+                  </Button>
+                )}
+                {todayPlan.plan.status === 'completed' && (
+                  <div className="bg-green-50 rounded-lg p-3 text-center">
+                    <p className="text-sm text-green-700 font-medium">
+                      ✅ Today's plan completed! Great job!
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 mb-3">No plan for today yet</p>
+                <Button size="sm" onClick={() => navigate('/today-plan')}>
+                  Generate Plan
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

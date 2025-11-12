@@ -34,7 +34,8 @@ export default function QuickQuizPage() {
       }
     };
     fetchQuickQuiz();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAnswerSelect = (questionId: number, answer: string) => {
     setUserAnswers(prev => ({ ...prev, [questionId]: answer }));

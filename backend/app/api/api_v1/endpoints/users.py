@@ -73,8 +73,8 @@ def read_user_me(current_user: UserModel = Depends(deps.get_current_user)):
     """Return current user info + whether they need onboarding setup."""
     user_data = UserOut.model_validate(current_user)
     user_data.needs_setup = not (
-        current_user.learning_goals
-        and len(current_user.learning_goals) > 0
+        current_user.legacy_learning_goals
+        and len(current_user.legacy_learning_goals) > 0
         and current_user.difficulty_preference
         and current_user.daily_study_time
     )
@@ -91,7 +91,7 @@ def setup_learning_preferences(
     setup: LearningSetup,
     current_user: UserModel = Depends(deps.get_current_user),
 ):
-    current_user.learning_goals = setup.learning_goals
+    current_user.legacy_learning_goals = setup.learning_goals
     current_user.difficulty_preference = setup.difficulty_preference
     current_user.daily_study_time = setup.daily_study_time
 
@@ -146,7 +146,7 @@ def upload_avatar(
         "username": current_user.username,
         "full_name": current_user.full_name,
         "avatar_url": avatar_url,
-        "learning_goals": current_user.learning_goals,
+        "learning_goals": current_user.legacy_learning_goals,
         "difficulty_preference": current_user.difficulty_preference,
         "daily_study_time": current_user.daily_study_time,
         "created_at": current_user.created_at,
