@@ -206,12 +206,12 @@ export default function TodayPlanPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm font-bold">{plan.completion_percentage.toFixed(0)}%</span>
+              <span className="text-sm font-bold">{Number(plan.completion_percentage).toFixed(0)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div
                 className="bg-green-500 h-3 rounded-full transition-all"
-                style={{ width: `${plan.completion_percentage}%` }}
+                style={{ width: `${Number(plan.completion_percentage)}%` }}
               />
             </div>
           </div>
