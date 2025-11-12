@@ -138,7 +138,9 @@ def complete_plan(
     effectiveness_rating: Optional[int] = None,
     user_notes: Optional[str] = None
 ) -> Optional[DailyStudyPlan]:
-    """Mark plan as completed"""
+    from app.models.study_session import StudySession, LearningAnalytics
+    from app.crud import crud_learning_goal
+    
     db_plan = get_plan(db, plan_id, user_id)
     if not db_plan:
         return None
@@ -157,6 +159,83 @@ def complete_plan(
         db_plan.completion_percentage = (completed_tasks_count / db_plan.total_tasks_count) * 100
     
     db_plan.updated_at = datetime.utcnow()
+    
+    # ✅ Integration 1: Create StudySession for analytics
+    if db_plan.started_at:
+        session = StudySession(
+            user_id=user_id,
+            daily_plan_id=plan_id,
+            session_type='mixed',  # Daily plan contains multiple activities
+            duration_seconds=actual_minutes_spent * 60,
+            started_at=db_plan.started_at,
+            ended_at=datetime.utcnow(),
+            performance_data=actual_performance or {},
+            is_planned=True
+        )
+        db.add(session)
+    
+    # ✅ Integration 2: Update LearningAnalytics
+    today = db_plan.plan_date
+    analytics = db.query(LearningAnalytics).filter(
+        and_(
+            LearningAnalytics.user_id == user_id,
+            LearningAnalytics.analytics_date == today
+        )
+    ).first()
+    
+    if not analytics:
+        analytics = LearningAnalytics(
+            user_id=user_id,
+            analytics_date=today,
+            total_study_minutes=0,
+            sessions_count=0
+        )
+        db.add(analytics)
+    
+    analytics.total_study_minutes += actual_minutes_spent
+    analytics.sessions_count += 1
+    analytics.is_active_day = True
+    
+    # Extract performance metrics from actual_performance
+    if actual_performance:
+        if 'flashcards' in actual_performance:
+            fc_data = actual_performance['flashcards']
+            analytics.flashcards_reviewed += fc_data.get('reviewed', 0)
+            analytics.flashcards_correct += fc_data.get('correct', 0)
+        
+        if 'quizzes' in actual_performance:
+            quiz_data = actual_performance['quizzes']
+            analytics.quizzes_taken += quiz_data.get('completed', 0)
+            if 'score' in quiz_data:
+                # Update average score
+                if analytics.quizzes_taken > 0:
+                    current_avg = float(analytics.quiz_avg_score or 0)
+                    new_score = quiz_data['score']
+                    analytics.quiz_avg_score = (current_avg * (analytics.quizzes_taken - 1) + new_score) / analytics.quizzes_taken
+    
+    # ✅ Integration 3: Update Learning Goal Progress
+    # Get active goals and update their progress based on completed tasks
+    from app.models.learning_goal import LearningGoal
+    active_goals = db.query(LearningGoal).filter(
+        and_(
+            LearningGoal.user_id == user_id,
+            LearningGoal.status == 'active'
+        )
+    ).all()
+    
+    for goal in active_goals:
+        # Increment progress by completed tasks count
+        if goal.current_progress is None:
+            goal.current_progress = 0
+        goal.current_progress += completed_tasks_count
+        
+        # Update goal status if target reached
+        if goal.target_metrics and 'tasks_completed' in goal.target_metrics:
+            target = goal.target_metrics['tasks_completed']
+            if goal.current_progress >= target:
+                goal.status = 'completed'
+                goal.current_progress = target
+    
     db.commit()
     db.refresh(db_plan)
     return db_plan
