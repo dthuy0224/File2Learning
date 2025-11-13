@@ -4,12 +4,14 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api',  // ✅ Đúng URL backend
+  withCredentials: true,
 })
+
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
+  const token = localStorage.getItem('ai-learning-auth-token') || useAuthStore.getState().token
   // Don't add Authorization header to auth endpoints
   if (token && !config.url?.includes('/auth/')) {
     config.headers.Authorization = `Bearer ${token}`

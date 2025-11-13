@@ -90,7 +90,7 @@ export interface QuizAttempt {
 export class QuizService {
   // Get all quizzes for current user
   static async getQuizzes(skip: number = 0, limit: number = 100): Promise<Quiz[]> {
-    const response = await api.get('/v1/quizzes/', {
+    const response = await api.get('/quizzes/', {
       params: { skip, limit }
     })
     return response.data
@@ -98,55 +98,55 @@ export class QuizService {
 
   // Get a quick quiz generated from user's flashcards
   static async getQuickQuiz(): Promise<Quiz> {
-    const response = await api.get('/v1/quizzes/quick')
+    const response = await api.get('/quizzes/quick')
     return response.data
   }
 
   // Create a new quiz
   static async createQuiz(quizData: QuizCreate): Promise<Quiz> {
-    const response = await api.post('/v1/quizzes/', quizData)
+    const response = await api.post('/quizzes/', quizData)
     return response.data
   }
 
   // Get a specific quiz by ID
   static async getQuiz(quizId: number): Promise<Quiz> {
-    const response = await api.get(`/v1/quizzes/${quizId}`)
+    const response = await api.get(`/quizzes/${quizId}`)
     return response.data
   }
 
   // Update a quiz
   static async updateQuiz(quizId: number, updateData: QuizUpdate): Promise<Quiz> {
-    const response = await api.put(`/v1/quizzes/${quizId}`, updateData)
+    const response = await api.put(`/quizzes/${quizId}`, updateData)
     return response.data
   }
 
   // Delete a quiz
   static async deleteQuiz(quizId: number): Promise<{ message: string }> {
-    const response = await api.delete(`/v1/quizzes/${quizId}`)
+    const response = await api.delete(`/quizzes/${quizId}`)
     return response.data
   }
 
   // Start a quiz attempt
   static async startQuizAttempt(quizId: number): Promise<QuizAttempt> {
-    const response = await api.post(`/v1/quizzes/${quizId}/attempt`)
+    const response = await api.post(`/quizzes/${quizId}/attempt`)
     return response.data
   }
 
   // Submit quiz answers
   static async submitQuizAttempt(quizId: number, submission: QuizAttemptSubmit): Promise<QuizAttempt> {
-    const response = await api.post(`/v1/quizzes/${quizId}/submit`, submission)
+    const response = await api.post(`/quizzes/${quizId}/submit`, submission)
     return response.data
   }
 
   // Get quiz attempts for a specific quiz
   static async getQuizAttempts(quizId: number): Promise<QuizAttempt[]> {
-    const response = await api.get(`/v1/quizzes/${quizId}/attempts`)
+    const response = await api.get(`/quizzes/${quizId}/attempts`)
     return response.data
   }
 
   // Get a specific quiz attempt by ID
   static async getQuizAttempt(attemptId: number): Promise<QuizAttempt & { quiz?: Quiz }> {
-    const response = await api.get(`/v1/quizzes/attempts/${attemptId}`)
+    const response = await api.get(`/quizzes/attempts/${attemptId}`)
     return response.data
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
@@ -36,6 +37,7 @@ interface QuizAttempt {
 export default function QuizTakingPage() {
   const { quizId } = useParams<{ quizId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // Quiz data
   const [quiz, setQuiz] = useState<any>(null)
@@ -61,6 +63,7 @@ export default function QuizTakingPage() {
     }
   }, [quizId])
 
+  // Timer effect for countdown (if time limit exists)
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
 
@@ -77,7 +80,6 @@ export default function QuizTakingPage() {
             return 0
           }
         })
-        setTotalTimeElapsed(prev => prev + 1)
       }, 1000)
     }
 
@@ -85,6 +87,22 @@ export default function QuizTakingPage() {
       if (interval) clearInterval(interval)
     }
   }, [timeRemaining])
+
+  // Separate timer for tracking total elapsed time
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+
+    // Start tracking time when quiz has started (has attempt)
+    if (attempt && !submitting) {
+      interval = setInterval(() => {
+        setTotalTimeElapsed(prev => prev + 1)
+      }, 1000)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [attempt, submitting])
 
   const fetchQuizDetails = async () => {
     try {
@@ -152,6 +170,12 @@ export default function QuizTakingPage() {
         answers: userAnswers,
         total_time: totalTimeElapsed
       })
+
+      // Invalidate all progress and stats queries to trigger refresh
+      queryClient.invalidateQueries({ queryKey: ['userStats'] })
+      queryClient.invalidateQueries({ queryKey: ['recentActivities'] })
+      queryClient.invalidateQueries({ queryKey: ['performanceHistory'] })
+      queryClient.invalidateQueries({ queryKey: ['fullProgress'] })
 
       // Navigate to results page
       navigate(`/attempts/${result.id}/results`)

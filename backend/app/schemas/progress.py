@@ -16,13 +16,12 @@ class UserStats(BaseModel):
 
 class ActivityHeatmapPoint(BaseModel):
     """Single point in activity heatmap"""
-    date: date
+    date: str  # ISO date string (YYYY-MM-DD)
     count: int  # number of activities on this day
 
 
 class PerformanceHistoryPoint(BaseModel):
-    """Single point in performance history"""
-    date: date
+    date: str  # ISO date string (YYYY-MM-DD)
     accuracy: float
     quizzes_completed: int
     avg_score: float

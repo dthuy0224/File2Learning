@@ -1,6 +1,6 @@
 """
 Multi-Provider AI Service
-Supports: Gemini (primary), Groq (backup), Ollama (fallback)
+Supports: Gemini (primary), Groq (backup)
 All FREE options optimized for students!
 """
 
@@ -9,6 +9,12 @@ import json
 import logging
 from typing import Dict, List, Optional, Literal
 from enum import Enum
+from dotenv import load_dotenv, find_dotenv
+
+# Load environment variables (single source: project root .env if running locally)
+_root_env = find_dotenv(filename=".env", usecwd=True)
+if _root_env:
+    load_dotenv(_root_env)
 
 logger = logging.getLogger(__name__)
 
@@ -17,19 +23,17 @@ class AIProvider(str, Enum):
     """Available AI providers"""
     GEMINI = "gemini"
     GROQ = "groq"
-    OLLAMA = "ollama"
 
 
 class MultiAIService:
     """
     Smart AI service that routes requests to multiple FREE providers
-    Priority: Gemini (FREE 1500/day) -> Groq (FREE 14400/day) -> Ollama (local)
+    Priority: Gemini (FREE 1500/day) -> Groq (FREE 14400/day)
     """
 
     def __init__(self):
         self.gemini_client = None
         self.groq_client = None
-        self.ollama_base_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
         
         # Initialize providers
         self._init_gemini()
@@ -38,8 +42,7 @@ class MultiAIService:
         # Track usage for smart routing
         self.provider_stats = {
             "gemini": {"success": 0, "failures": 0},
-            "groq": {"success": 0, "failures": 0},
-            "ollama": {"success": 0, "failures": 0}
+            "groq": {"success": 0, "failures": 0}
         }
 
     def _init_gemini(self):
@@ -88,7 +91,7 @@ class MultiAIService:
 
         prompt = self._build_quiz_prompt(text_content, quiz_type, num_questions)
         
-        # Try providers in order: Gemini -> Groq -> Ollama
+        # Try providers in order: Gemini -> Groq
         providers = self._get_provider_order(preferred_provider)
         
         for provider in providers:
@@ -99,8 +102,8 @@ class MultiAIService:
                     result = await self._generate_with_gemini(prompt)
                 elif provider == AIProvider.GROQ and self.groq_client:
                     result = await self._generate_with_groq(prompt)
-                else:  # Ollama fallback
-                    result = await self._generate_with_ollama(prompt)
+                else:
+                    continue
                 
                 if result:
                     questions = self._parse_quiz_response(result, quiz_type)
@@ -152,7 +155,7 @@ class MultiAIService:
                 elif provider == AIProvider.GROQ and self.groq_client:
                     result = await self._generate_with_groq(prompt)
                 else:
-                    result = await self._generate_with_ollama(prompt)
+                    continue
                 
                 if result:
                     flashcards = self._parse_flashcard_response(result)
@@ -206,7 +209,7 @@ Summary:"""
                 elif provider == AIProvider.GROQ and self.groq_client:
                     result = await self._generate_with_groq(prompt)
                 else:
-                    result = await self._generate_with_ollama(prompt)
+                    continue
                 
                 if result:
                     self.provider_stats[provider.value]["success"] += 1
@@ -260,7 +263,7 @@ Summary:"""
                 elif provider == AIProvider.GROQ and self.groq_client:
                     result = await self._generate_with_groq(prompt)
                 else:
-                    result = await self._generate_with_ollama(prompt)
+                    continue
                 
                 if result:
                     self.provider_stats[provider.value]["success"] += 1
@@ -315,56 +318,28 @@ Summary:"""
             logger.error(f"Groq error: {str(e)}")
             return None
 
-    async def _generate_with_ollama(self, prompt: str) -> Optional[str]:
-        """Generate response using local Ollama (always available fallback)"""
-        try:
-            import httpx
-            
-            client = httpx.Client(timeout=300.0)
-            response = client.post(
-                f"{self.ollama_base_url}/api/generate",
-                json={
-                    "model": "phi3:mini",  # Lightweight model
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "top_p": 0.9
-                    }
-                }
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result.get("response", "")
-            return None
-            
-        except Exception as e:
-            logger.error(f"Ollama error: {str(e)}")
-            return None
 
     def _get_provider_order(self, preferred: Optional[AIProvider] = None) -> List[AIProvider]:
         """
         Get provider priority order
-        Default: Gemini -> Groq -> Ollama
+        Default: Gemini -> Groq
         """
         if preferred:
             # Put preferred provider first
             order = [preferred]
-            for p in [AIProvider.GEMINI, AIProvider.GROQ, AIProvider.OLLAMA]:
+            for p in [AIProvider.GEMINI, AIProvider.GROQ]:
                 if p != preferred:
                     order.append(p)
             return order
         
         # Default order: fastest FREE options first
-        return [AIProvider.GEMINI, AIProvider.GROQ, AIProvider.OLLAMA]
+        return [AIProvider.GEMINI, AIProvider.GROQ]
 
     def _get_model_name(self, provider: AIProvider) -> str:
         """Get model name for provider"""
         models = {
             AIProvider.GEMINI: "gemini-2.0-flash-exp (FREE)",
-            AIProvider.GROQ: "llama-3.3-70b-versatile (FREE)",
-            AIProvider.OLLAMA: "phi3:mini (local)"
+            AIProvider.GROQ: "llama-3.3-70b-versatile (FREE)"
         }
         return models.get(provider, "unknown")
 
@@ -415,14 +390,16 @@ Questions:"""
 
     def _build_flashcard_prompt(self, text: str, num_cards: int) -> str:
         """Build prompt for flashcard generation"""
-        return f"""Extract {num_cards} important vocabulary words/phrases from the following text and create flashcards:
+        return f"""Extract {num_cards} important vocabulary words/phrases from the following text and create flashcards.
 
 Text: {text}
 
 Format each flashcard as:
-Front: [Word/Phrase]
-Back: [Definition]
+Front: [Word/Phrase - use **bold** for emphasis]
+Back: [Definition - use **bold** for key terms, *italic* for examples]
 Example: [Example sentence]
+
+You can use markdown formatting (**bold**, *italic*, `code`) to emphasize important parts.
 
 Flashcards:"""
 
@@ -537,8 +514,7 @@ Document:
             "providers": self.provider_stats,
             "available_providers": {
                 "gemini": self.gemini_client is not None,
-                "groq": self.groq_client is not None,
-                "ollama": True  # Always available as fallback
+                "groq": self.groq_client is not None
             }
         }
 

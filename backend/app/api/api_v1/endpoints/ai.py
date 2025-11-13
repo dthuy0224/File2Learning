@@ -189,42 +189,32 @@ async def generate_summary_from_document(
 @router.get("/models", response_model=Dict[str, Any])
 async def get_available_models() -> Any:
     """
-    Get list of available Ollama models
+    Get list of available AI models
     """
-    try:
-        # This would typically call Ollama API to list models
-        # For now, return static list
-        return {
-            "models": [
-                {
-                    "name": "llama2:7b",
-                    "description": "General purpose chat model",
-                    "size": "3.8GB"
-                },
-                {
-                    "name": "mistral:7b",
-                    "description": "Fast and capable general model",
-                    "size": "4.1GB"
-                },
-                {
-                    "name": "codellama:7b",
-                    "description": "Code-focused model",
-                    "size": "3.8GB"
-                }
-            ],
-            "default_model": "llama2:7b"
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error getting models: {str(e)}"
-        )
+    return {
+        "models": [
+            {
+                "name": "gemini-2.0-flash-exp",
+                "provider": "Google Gemini",
+                "description": "Latest Gemini model (FREE)",
+                "status": "available"
+            },
+            {
+                "name": "llama-3.3-70b-versatile",
+                "provider": "Groq",
+                "description": "Fast and capable model (FREE)",
+                "status": "available"
+            }
+        ],
+        "default_provider": "gemini",
+        "default_model": "gemini-2.0-flash-exp"
+    }
 
 
 @router.post("/test-connection", response_model=Dict[str, Any])
 async def test_ai_connection() -> Any:
     """
-    Test connection to Multi-AI Service (Gemini/Groq/Ollama)
+    Test connection to Multi-AI Service (Gemini/Groq)
     """
     try:
         # Simple test prompt

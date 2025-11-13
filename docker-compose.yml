@@ -2,6 +2,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: file2learning_postgres
     environment:
       POSTGRES_DB: file2learning
       POSTGRES_USER: postgres
@@ -10,16 +11,20 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/01-init-users.sql:ro
+      - ./scripts/02-init-database.sh:/docker-entrypoint-initdb.d/02-init-database.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d file2learning"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
 
   # Redis for caching and sessions
   redis:
     image: redis:7-alpine
+    container_name: file2learning_redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -30,41 +35,35 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-
-  # Ollama for local AI
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-      - ./ollama_setup:/ollama_setup
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    entrypoint: /bin/sh
-    command: /ollama_setup/init-ollama.sh
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    restart: unless-stopped
 
   # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: file2learning_backend
+    env_file:
+      - .env 
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning
       - REDIS_URL=redis://redis:6379
-      - OLLAMA_URL=http://ollama:11434
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/oauth/google/callback
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID:-}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET:-}
+      - MICROSOFT_REDIRECT_URI=http://localhost:8000/api/v1/auth/oauth/microsoft/callback
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - GITHUB_REDIRECT_URI=http://localhost:8000/api/v1/auth/oauth/github/callback
+      - OAUTH_BASE_URL=http://localhost:8000
     volumes:
       - ./backend:/app
       - backend_uploads:/app/uploads
@@ -73,25 +72,34 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: >
       sh -c "
-        sleep 10 &&
+        echo 'Waiting for database to be ready...' &&
+        sleep 5 &&
+        echo 'Running database migrations...' &&
+        python -m alembic upgrade head &&
+        echo 'Starting backend server...' &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Celery Worker for background tasks
   celery-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: file2learning_celery
     environment:
       - DATABASE_URL=postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning
       - REDIS_URL=redis://redis:6379/0
-      - OLLAMA_URL=http://ollama:11434
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
@@ -106,7 +114,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
+      backend:
         condition: service_started
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2 --pool=solo
     restart: unless-stopped
@@ -115,12 +123,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
 
   # Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: file2learning_frontend
     ports:
       - "3000:3000"
     volumes:
@@ -129,11 +139,12 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+    restart: unless-stopped
     command: npm run dev
 
 volumes:
   postgres_data:
   redis_data:
   backend_uploads:
-  ollama_data:

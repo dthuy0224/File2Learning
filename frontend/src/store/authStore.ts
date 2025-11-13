@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { userService } from '@/services/userService'
 
 export interface User {
+  needs_setup: any
   id: number
   email: string
   username: string
@@ -9,39 +11,81 @@ export interface User {
   learning_goals: string[]
   difficulty_preference: string
   daily_study_time: number
+  oauth_avatar?: string
+  created_at?: string
 }
 
 interface AuthState {
   token: string | null
   user: User | null
   isLoading: boolean
-  login: (token: string, user: User) => void
+
+  // Actions
+  login: (token: string | null, user?: User | null) => Promise<void>
   logout: () => void
-  updateUser: (user: User) => void
+  updateUser: (user: Partial<User>) => void
   setLoading: (loading: boolean) => void
+  reset: () => void
+  fetchUser: () => Promise<void> // ✅ thêm
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       isLoading: false,
-      
-      login: (token: string, user: User) => {
-        set({ token, user, isLoading: false })
-      },
-      
+
+      // Khi login → set token và fetch user từ backend
+    login: async (token: string | null, user: User | null = null) => {
+  if (token) {
+    localStorage.setItem('ai-learning-auth-token', token) // ✅ lưu trực tiếp
+  } else {
+    localStorage.removeItem('ai-learning-auth-token')
+  }
+
+  set({ token, isLoading: true })
+
+  try {
+    if (!user) {
+      await get().fetchUser()
+    } else {
+      set({ user })
+    }
+  } finally {
+    set({ isLoading: false })
+  }
+},
+
+
       logout: () => {
         set({ token: null, user: null, isLoading: false })
+        localStorage.removeItem('ai-learning-auth')
       },
-      
-      updateUser: (user: User) => {
-        set({ user })
-      },
-      
+
+      updateUser: (user: Partial<User>) => {
+  set((state) => ({
+    ...state,
+    user: state.user ? { ...state.user, ...user } : (user as User),
+  }))
+},
+
       setLoading: (loading: boolean) => {
         set({ isLoading: loading })
+      },
+
+      reset: () => {
+        set({ token: null, user: null, isLoading: false })
+      },
+
+      // ✅ Đồng bộ dữ liệu user từ backend
+      fetchUser: async () => {
+        try {
+          const data = await userService.getProfile()
+          if (data?.email) set({ user: data })
+        } catch (error) {
+          console.error('Failed to fetch user:', error)
+        }
       },
     }),
     {

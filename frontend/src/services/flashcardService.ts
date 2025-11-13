@@ -60,7 +60,7 @@ export interface FlashcardReview {
 export class FlashcardService {
   // Get all flashcards for current user
   static async getFlashcards(skip: number = 0, limit: number = 100): Promise<Flashcard[]> {
-    const response = await api.get('/v1/flashcards/', {
+    const response = await api.get('/flashcards/', {
       params: { skip, limit }
     })
     return response.data
@@ -68,7 +68,7 @@ export class FlashcardService {
 
   // Get flashcards due for review
   static async getDueFlashcards(limit: number = 50): Promise<Flashcard[]> {
-    const response = await api.get('/v1/flashcards/due', {
+    const response = await api.get('/flashcards/due', {
       params: { limit }
     })
     return response.data
@@ -76,31 +76,31 @@ export class FlashcardService {
 
   // Create a new flashcard
   static async createFlashcard(flashcardData: FlashcardCreate): Promise<Flashcard> {
-    const response = await api.post('/v1/flashcards/', flashcardData)
+    const response = await api.post('/flashcards/', flashcardData)
     return response.data
   }
 
   // Get a specific flashcard by ID
   static async getFlashcard(flashcardId: number): Promise<Flashcard> {
-    const response = await api.get(`/v1/flashcards/${flashcardId}`)
+    const response = await api.get(`/flashcards/${flashcardId}`)
     return response.data
   }
 
   // Update a flashcard
   static async updateFlashcard(flashcardId: number, updateData: FlashcardUpdate): Promise<Flashcard> {
-    const response = await api.put(`/v1/flashcards/${flashcardId}`, updateData)
+    const response = await api.put(`/flashcards/${flashcardId}`, updateData)
     return response.data
   }
 
   // Review a flashcard (update SRS data)
   static async reviewFlashcard(flashcardId: number, reviewData: FlashcardReview): Promise<Flashcard> {
-    const response = await api.post(`/v1/flashcards/${flashcardId}/review`, reviewData)
+    const response = await api.post(`/flashcards/${flashcardId}/review`, reviewData)
     return response.data
   }
 
   // Delete a flashcard
   static async deleteFlashcard(flashcardId: number): Promise<{ message: string }> {
-    const response = await api.delete(`/v1/flashcards/${flashcardId}`)
+    const response = await api.delete(`/flashcards/${flashcardId}`)
     return response.data
   }
 
@@ -114,13 +114,13 @@ export class FlashcardService {
 
   // Get all flashcard sets (documents with flashcards)
   static async getFlashcardSets(): Promise<FlashcardSet[]> {
-    const response = await api.get('/v1/flashcard-sets/')
+    const response = await api.get('/flashcard-sets/')
     return response.data
   }
 
   // Get all flashcards in a specific set
   static async getFlashcardsInSet(setId: number): Promise<Flashcard[]> {
-    const response = await api.get(`/v1/flashcard-sets/${setId}/cards`)
+    const response = await api.get(`/flashcard-sets/${setId}/cards`)
     return response.data
   }
 

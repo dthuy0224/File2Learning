@@ -206,19 +206,39 @@ def submit_quiz_attempt(
         question_id = question.id
         user_answer = submission.answers.get(str(question_id), "")
         correct_answer = question.correct_answer
-
+        
+        # Smart answer comparison
+        is_correct = False
+        
+        # Case 1: Direct match (for fill-in-the-blank or exact match)
+        if user_answer.strip().lower() == correct_answer.strip().lower():
+            is_correct = True
+        # Case 2: Multiple choice - check if user selected the correct option
+        elif question.options and len(correct_answer) == 1 and correct_answer.upper() in ['A', 'B', 'C', 'D']:
+            # Correct answer is a letter (A, B, C, D)
+            option_index = ord(correct_answer.upper()) - ord('A')
+            if 0 <= option_index < len(question.options):
+                correct_option_text = question.options[option_index]
+                if user_answer.strip().lower() == correct_option_text.strip().lower():
+                    is_correct = True
+        # Case 3: User answered with letter, correct answer is text
+        elif user_answer.strip().upper() in ['A', 'B', 'C', 'D'] and question.options:
+            option_index = ord(user_answer.strip().upper()) - ord('A')
+            if 0 <= option_index < len(question.options):
+                user_option_text = question.options[option_index]
+                if user_option_text.strip().lower() == correct_answer.strip().lower():
+                    is_correct = True
 
         answers_dict[str(question_id)] = {
             "question_text": question.question_text,
             "user_answer": user_answer,
             "correct_answer": correct_answer,
-            "is_correct": user_answer.strip().lower() == correct_answer.strip().lower(),
+            "is_correct": is_correct,
             "explanation": question.explanation,
             "points": question.points
         }
-
         
-        if user_answer.strip().lower() == correct_answer.strip().lower():
+        if is_correct:
             correct_answers += 1
 
         total_points += question.points
@@ -277,12 +297,14 @@ def read_quiz_attempt_by_id(
     attempt_id: int,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    Get a specific quiz attempt by its ID.
-    """
-    from app.models.quiz import QuizAttempt as QuizAttemptModel
 
-    attempt_obj = db.query(QuizAttemptModel).filter(QuizAttemptModel.id == attempt_id).first()
+    from app.models.quiz import QuizAttempt as QuizAttemptModel
+    from sqlalchemy.orm import joinedload
+
+    attempt_obj = db.query(QuizAttemptModel)\
+        .options(joinedload(QuizAttemptModel.quiz))\
+        .filter(QuizAttemptModel.id == attempt_id)\
+        .first()
 
     if not attempt_obj:
         raise HTTPException(status_code=404, detail="Quiz attempt not found")

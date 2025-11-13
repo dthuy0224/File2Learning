@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, FileText, BookOpen, AlertCircle, Save } from 'lucid
 import { toast } from 'react-hot-toast'
 import AIService, { Flashcard, FlashcardResponse } from '../services/aiService'
 import FlashcardService from '../services/flashcardService'
+import MarkdownText from '../components/MarkdownText'
 
 export default function FlashcardGenerationPage() {
   const { documentId } = useParams<{ documentId: string }>()
@@ -225,8 +226,12 @@ export default function FlashcardGenerationPage() {
                   onChange={() => handleSelectCard(index)}
                 />
                 <div className="flex-1">
-                  <p className="font-semibold">{card.front_text}</p>
-                  <p className="text-gray-600">{card.back_text}</p>
+                  <div className="font-semibold">
+                    <MarkdownText>{card.front_text}</MarkdownText>
+                  </div>
+                  <div className="text-gray-600">
+                    <MarkdownText>{card.back_text}</MarkdownText>
+                  </div>
                   {card.example_sentence && (
                     <p className="text-sm italic text-gray-500 mt-1">
                       "{card.example_sentence}"

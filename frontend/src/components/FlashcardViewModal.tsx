@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { Button } from './ui/button';
-import { Flashcard } from '../services/flashcardService';
+import MarkdownText from './MarkdownText';
 
 interface FlashcardViewModalProps {
-  card: Flashcard | null;
+  card: {
+    id: number;
+    front_text: string;
+    back_text: string;
+    example?: string;
+    pronunciation?: string;
+  } | null;
   onClose: () => void;
+  open?: boolean;
+  isFlipped?: boolean;
+  onFlip?: () => void;
 }
 
 export default function FlashcardViewModal({ card, onClose }: FlashcardViewModalProps) {
@@ -31,15 +39,20 @@ export default function FlashcardViewModal({ card, onClose }: FlashcardViewModal
             borderWidth: '2px'
           }}
         >
-          <p className="text-xl text-center font-semibold" style={{color: isFlipped ? '#166534' : '#1e40af'}}>
-            {isFlipped ? card.back_text : card.front_text}
-          </p>
+          <div className="text-xl text-center font-semibold" style={{color: isFlipped ? '#166534' : '#1e40af'}}>
+            <MarkdownText>{isFlipped ? card.back_text : card.front_text}</MarkdownText>
+          </div>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-2">Click on the card to flip it.</p>
 
         <div className="mt-6 flex justify-end">
-          <Button onClick={handleClose}>Close</Button>
+          <button 
+            onClick={handleClose}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

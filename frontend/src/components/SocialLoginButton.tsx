@@ -1,28 +1,27 @@
-import { useState } from 'react'
-import { Button } from './ui/button'
-import { authService } from '../services/authService'
-import { useAuthStore } from '../store/authStore'
-import toast from 'react-hot-toast'
+import { useState } from "react";
+import { Button } from "./ui/button";
+import { useAuthStore } from "../store/authStore";
+import toast from "react-hot-toast";
 
 interface SocialLoginButtonProps {
-  provider: 'google' | 'microsoft' | 'github'
-  onSuccess: (token: string, user: any) => void
-  onError: (error: string) => void
-  disabled?: boolean
+  provider: "google" | "microsoft" | "github";
+  onSuccess: (token: string, user: any) => void;
+  onError: (error: string) => void;
+  disabled?: boolean;
 }
 
 export default function SocialLoginButton({
   provider,
   onSuccess,
   onError,
-  disabled = false
+  disabled = false,
 }: SocialLoginButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuthStore()
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuthStore();
 
   const providerConfig = {
     google: {
-      name: 'Google',
+      name: "Google",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -43,11 +42,11 @@ export default function SocialLoginButton({
           />
         </svg>
       ),
-      color: 'bg-red-600 hover:bg-red-700',
-      text: 'Continue with Google'
+      color: "bg-red-600 hover:bg-red-700",
+      text: "Continue with Google",
     },
     microsoft: {
-      name: 'Microsoft',
+      name: "Microsoft",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -56,11 +55,11 @@ export default function SocialLoginButton({
           />
         </svg>
       ),
-      color: 'bg-blue-600 hover:bg-blue-700',
-      text: 'Continue with Microsoft'
+      color: "bg-blue-600 hover:bg-blue-700",
+      text: "Continue with Microsoft",
     },
     github: {
-      name: 'GitHub',
+      name: "GitHub",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -69,36 +68,38 @@ export default function SocialLoginButton({
           />
         </svg>
       ),
-      color: 'bg-gray-900 hover:bg-gray-800',
-      text: 'Continue with GitHub'
-    }
-  }
+      color: "bg-gray-900 hover:bg-gray-800",
+      text: "Continue with GitHub",
+    },
+  };
 
-  const config = providerConfig[provider]
+  const config = providerConfig[provider];
 
   const handleSocialLogin = async () => {
-    if (disabled || isLoading) return
+    if (disabled || isLoading) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      // Get OAuth URL from backend
-      const response = await fetch(`/api/v1/auth/oauth/${provider}`)
+      // gọi backend API để lấy OAuth URL (qua proxy: /api -> /api/v1)
+      const response = await fetch(
+        `/api/auth/oauth/${provider}`
+      );
       if (!response.ok) {
-        throw new Error('Failed to get OAuth URL')
+        throw new Error("Failed to get OAuth URL");
       }
 
-      const { authorization_url } = await response.json()
+      const { authorization_url } = await response.json();
 
-      // Redirect to OAuth provider
-      window.location.href = authorization_url
+      // redirect sang provider
+      window.location.href = authorization_url;
     } catch (error: any) {
-      console.error('Social login error:', error)
-      toast.error('Failed to start social login')
-      onError(error.message || 'Social login failed')
+      console.error("Social login error:", error);
+      toast.error("Failed to start social login");
+      onError(error.message || "Social login failed");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Button
@@ -132,7 +133,7 @@ export default function SocialLoginButton({
       ) : (
         config.icon
       )}
-      {isLoading ? 'Connecting...' : config.text}
+      {isLoading ? "Connecting..." : config.text}
     </Button>
-  )
+  );
 }

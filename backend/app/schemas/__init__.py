@@ -9,6 +9,23 @@ from app.schemas.progress import (
     SkillBreakdownPoint, RecentActivityItem, ProgressResponse
 )
 
+# Adaptive Learning Schemas
+from app.schemas.learning_goal import (
+    LearningGoalCreate, LearningGoalUpdate, LearningGoalResponse, LearningGoalList
+)
+from app.schemas.daily_plan import (
+    RecommendedTask, DailyStudyPlanCreate, DailyStudyPlanUpdate,
+    DailyStudyPlanStart, DailyStudyPlanComplete, DailyStudyPlanResponse, TodayPlanResponse
+)
+from app.schemas.learning_profile import (
+    LearningProfileUpdate, LearningProfileResponse, ProfileStatsResponse
+)
+from app.schemas.recommendation import (
+    RecommendationCreate, RecommendationUpdate, RecommendationInteraction,
+    RecommendationResponse, RecommendationListResponse, RecommendationStats,
+    RecommendationType, RecommendationPriority
+)
+
 __all__ = [
     "User", "UserCreate", "UserUpdate", "UserInDB",
     "Document", "DocumentCreate", "DocumentUpdate",
@@ -16,5 +33,13 @@ __all__ = [
     "Quiz", "QuizCreate", "QuizQuestion", "QuizAttempt",
     "Token", "TokenPayload",
     "UserStats", "ActivityHeatmapPoint", "PerformanceHistoryPoint",
-    "SkillBreakdownPoint", "RecentActivityItem", "ProgressResponse"
+    "SkillBreakdownPoint", "RecentActivityItem", "ProgressResponse",
+    # Adaptive Learning
+    "LearningGoalCreate", "LearningGoalUpdate", "LearningGoalResponse", "LearningGoalList",
+    "RecommendedTask", "DailyStudyPlanCreate", "DailyStudyPlanUpdate", 
+    "DailyStudyPlanStart", "DailyStudyPlanComplete", "DailyStudyPlanResponse", "TodayPlanResponse",
+    "LearningProfileUpdate", "LearningProfileResponse", "ProfileStatsResponse",
+    "RecommendationCreate", "RecommendationUpdate", "RecommendationInteraction",
+    "RecommendationResponse", "RecommendationListResponse", "RecommendationStats",
+    "RecommendationType", "RecommendationPriority",
 ]

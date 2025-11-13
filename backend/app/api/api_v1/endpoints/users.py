@@ -2,13 +2,34 @@ from typing import Any, List
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, and_, cast, Date
+import shutil
+import os
+import re
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    status,
+    Body,
+    Query,
+)
 
 from app.core.database import get_db
 from app.core import deps
-from app.crud import user
-from app.schemas.user import User, UserCreate, UserUpdate
+from app.core.security import pwd_context
+from app.crud import user as crud_user
+from app.models.user import User as UserModel
+from app.schemas.user import (
+    User,
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserOut,
+    PasswordChange,
+)
 from app.schemas.progress import (
     UserStats, ActivityHeatmapPoint, PerformanceHistoryPoint,
     SkillBreakdownPoint, RecentActivityItem, ProgressResponse
@@ -16,85 +37,161 @@ from app.schemas.progress import (
 
 router = APIRouter()
 
+AVATAR_DIR = "app/static/avatars"
+os.makedirs(AVATAR_DIR, exist_ok=True)
 
-@router.post("/", response_model=User)
+def _normalize_learning_goals(raw_goals) -> list[str]:
+    """Ensure learning goals are consistently represented as list[str]."""
+    if not raw_goals:
+        return []
+    if isinstance(raw_goals, list):
+        return [str(goal) for goal in raw_goals]
+    return [str(raw_goals)]
+
+
+def _user_to_user_out(user: UserModel) -> UserOut:
+    """Convert ORM user instance to UserOut schema safely."""
+    learning_goals = _normalize_learning_goals(getattr(user, "legacy_learning_goals", None))
+
+    user_out = UserOut(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        full_name=user.full_name,
+        learning_goals=learning_goals or None,
+        difficulty_preference=user.difficulty_preference,
+        daily_study_time=user.daily_study_time,
+        created_at=user.created_at,
+        oauth_avatar=user.oauth_avatar,
+        avatar_url=getattr(user, "avatar_url", None),
+    )
+
+    user_out.needs_setup = not (
+        learning_goals
+        and user.difficulty_preference
+        and user.daily_study_time
+    )
+
+    return user_out
+
+
+@router.post("/", response_model=UserResponse)
 def create_user(
     *,
     db: Session = Depends(get_db),
     user_in: UserCreate,
 ) -> Any:
-    """
-    Create new user.
-    """
-    user_obj = user.get_by_email(db, email=user_in.email)
-    if user_obj:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user with this email already exists in the system.",
-        )
-    
-    user_obj = user.get_by_username(db, username=user_in.username)
-    if user_obj:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user with this username already exists in the system.",
-        )
-    
-    user_obj = user.create(db, obj_in=user_in)
-    return user_obj
+    if crud_user.get_by_email(db, email=user_in.email):
+        raise HTTPException(status_code=400, detail="Email already exists")
+    if crud_user.get_by_username(db, username=user_in.username):
+        raise HTTPException(status_code=400, detail="Username already exists")
+    return crud_user.create(db, obj_in=user_in)
 
 
-@router.get("/me", response_model=User)
-def read_user_me(
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Get current user.
-    """
-    return current_user
 
-
-@router.put("/me", response_model=User)
+@router.put("/me", response_model=UserResponse)
 def update_user_me(
     *,
     db: Session = Depends(get_db),
-    password: str = None,
-    full_name: str = None,
-    email: str = None,
-    current_user: User = Depends(deps.get_current_user),
-) -> Any:
-    """
-    Update own user.
-    """
-    current_user_data = UserUpdate(**current_user.__dict__)
-    if password is not None:
-        current_user_data.password = password
-    if full_name is not None:
-        current_user_data.full_name = full_name
-    if email is not None:
-        current_user_data.email = email
-    
-    user_obj = user.update(db, db_obj=current_user, obj_in=current_user_data)
-    return user_obj
+    data: UserUpdate,
+    current_user: UserModel = Depends(deps.get_current_user),
+):
+    updated_user = crud_user.update(db, db_obj=current_user, obj_in=data)
+    return updated_user
 
 
-@router.get("/{user_id}", response_model=User)
-def read_user_by_id(
-    user_id: int,
-    current_user: User = Depends(deps.get_current_user),
+
+@router.get("/me", response_model=UserOut)
+def read_user_me(current_user: UserModel = Depends(deps.get_current_user)):
+    """Return current user info + whether they need onboarding setup."""
+    return _user_to_user_out(current_user)
+
+
+
+from app.schemas.user import LearningSetup
+
+@router.put("/me/setup-learning", response_model=UserOut)
+def setup_learning_preferences(
+    *,
     db: Session = Depends(get_db),
-) -> Any:
-    """
-    Get a specific user by id.
-    """
-    user_obj = user.get(db, id=user_id)
-    if user_obj == current_user:
-        return user_obj
-    if not user.is_superuser(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user doesn't have enough privileges"
-        )
+    setup: LearningSetup,
+    current_user: UserModel = Depends(deps.get_current_user),
+):
+    current_user.legacy_learning_goals = setup.learning_goals
+    current_user.difficulty_preference = setup.difficulty_preference
+    current_user.daily_study_time = setup.daily_study_time
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return _user_to_user_out(current_user)
+
+
+
+@router.post("/me/change-password")
+def change_password(
+    *,
+    data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(deps.get_current_user),
+):
+    user = crud_user.change_password(
+        db,
+        user_id=current_user.id,
+        old_password=data.old_password,
+        new_password=data.new_password,
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid old password")
+    return {"message": "Password updated successfully"}
+
+
+
+@router.post("/me/upload-avatar")
+def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(deps.get_current_user),
+):
+    safe_filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", file.filename)
+    filename = f"user_{current_user.id}_{safe_filename}"
+    file_path = os.path.join(AVATAR_DIR, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    current_user.avatar = filename
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    avatar_url = f"http://localhost:8000/static/avatars/{filename}"
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "full_name": current_user.full_name,
+        "avatar_url": avatar_url,
+        "learning_goals": current_user.legacy_learning_goals,
+        "difficulty_preference": current_user.difficulty_preference,
+        "daily_study_time": current_user.daily_study_time,
+        "created_at": current_user.created_at,
+    }
+
+
+
+@router.get("/{user_id}", response_model=UserResponse)
+def read_user_by_id(
+    *,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(deps.get_current_user),
+):
+    user_obj = crud_user.get(db, id=user_id)
+    if not user_obj:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user_obj.id != current_user.id and not crud_user.is_superuser(current_user):
+        raise HTTPException(status_code=403, detail="Not enough privileges")
     return user_obj
 
 
@@ -118,11 +215,13 @@ def get_user_stats(
     # Study streak calculation (consecutive days with activity)
     study_streak = _calculate_study_streak(db, current_user.id, start_date)
 
-    # Words mastered (flashcards with high ease factor and repetitions)
+    # Words mastered (flashcards with good retention - revised easier criteria)
+    # A word is "mastered" if user has reviewed it successfully at least 2 times
+    # and maintains a decent ease factor (>= 2.0, not just default 2.5)
     words_mastered = db.query(func.count(Flashcard.id)).filter(
         Flashcard.owner_id == current_user.id,
-        Flashcard.ease_factor >= 2.5,
-        Flashcard.repetitions >= 3
+        Flashcard.ease_factor >= 2.0,  # Lowered from 2.5 to be more forgiving
+        Flashcard.repetitions >= 2      # Lowered from 3 to 2 successful reviews
     ).scalar()
 
     # Average accuracy from quiz attempts
@@ -142,7 +241,8 @@ def get_user_stats(
     ).scalar() or 0
 
     # Estimate flashcard review time (30 seconds per review)
-    flashcard_reviews = db.query(func.count(Flashcard.id)).filter(
+    # Count total number of reviews, not just number of flashcards
+    flashcard_reviews = db.query(func.sum(Flashcard.times_reviewed)).filter(
         Flashcard.owner_id == current_user.id,
         Flashcard.updated_at >= start_date
     ).scalar() or 0
@@ -156,7 +256,7 @@ def get_user_stats(
         QuizAttempt.is_completed == True
     ).scalar()
 
-    # Total flashcards reviewed
+    # Total flashcards reviewed (same value as flashcard_reviews - total review count)
     total_flashcards_reviewed = flashcard_reviews
 
     # Documents processed
@@ -228,7 +328,7 @@ def get_activity_heatmap(
     result = []
     for date_str, count in activity_map.items():
         result.append(ActivityHeatmapPoint(
-            date=datetime.fromisoformat(date_str).date(),
+            date=date_str,  # Return as string to match frontend expectation
             count=min(count, 10)  # Cap at 10 for better visualization
         ))
 
@@ -268,7 +368,7 @@ def get_performance_history(
     for perf in daily_performance:
         if perf.avg_accuracy is not None:
             result.append(PerformanceHistoryPoint(
-                date=perf.date,
+                date=perf.date.isoformat(),  # Convert to ISO string format
                 accuracy=round(float(perf.avg_accuracy), 1),
                 quizzes_completed=perf.quizzes_completed,
                 avg_score=round(float(perf.avg_score), 1)

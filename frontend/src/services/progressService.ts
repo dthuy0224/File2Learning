@@ -51,37 +51,37 @@ export interface ProgressResponse {
 export const progressService = {
   // Get user statistics and KPIs
   getUserStats: async (rangeDays: number = 30): Promise<UserStats> => {
-    const response = await api.get(`/v1/users/me/stats?range_days=${rangeDays}`)
+    const response = await api.get(`/users/me/stats?range_days=${rangeDays}`)
     return response.data
   },
 
   // Get activity heatmap data
   getActivityHeatmap: async (rangeDays: number = 90): Promise<ActivityHeatmapPoint[]> => {
-    const response = await api.get(`/v1/users/me/activity-heatmap?range_days=${rangeDays}`)
+    const response = await api.get(`/users/me/activity-heatmap?range_days=${rangeDays}`)
     return response.data
   },
 
   // Get performance history
   getPerformanceHistory: async (rangeDays: number = 30): Promise<PerformanceHistoryPoint[]> => {
-    const response = await api.get(`/v1/users/me/performance-history?range_days=${rangeDays}`)
+    const response = await api.get(`/users/me/performance-history?range_days=${rangeDays}`)
     return response.data
   },
 
   // Get skill breakdown by difficulty
   getSkillBreakdown: async (rangeDays: number = 30): Promise<SkillBreakdownPoint[]> => {
-    const response = await api.get(`/v1/users/me/skill-breakdown?range_days=${rangeDays}`)
+    const response = await api.get(`/users/me/skill-breakdown?range_days=${rangeDays}`)
     return response.data
   },
 
   // Get recent activities
   getRecentActivities: async (limit: number = 10): Promise<RecentActivityItem[]> => {
-    const response = await api.get(`/v1/users/me/recent-activities?limit=${limit}`)
+    const response = await api.get(`/users/me/recent-activities?limit=${limit}`)
     return response.data
   },
 
   // Get complete progress data
   getFullProgress: async (rangeDays: number = 30): Promise<ProgressResponse> => {
-    const response = await api.get(`/v1/users/me/progress?range_days=${rangeDays}`)
+    const response = await api.get(`/users/me/progress?range_days=${rangeDays}`)
     return response.data
   }
 }
