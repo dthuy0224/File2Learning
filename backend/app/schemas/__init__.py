@@ -20,6 +20,11 @@ from app.schemas.daily_plan import (
 from app.schemas.learning_profile import (
     LearningProfileUpdate, LearningProfileResponse, ProfileStatsResponse
 )
+from app.schemas.recommendation import (
+    RecommendationCreate, RecommendationUpdate, RecommendationInteraction,
+    RecommendationResponse, RecommendationListResponse, RecommendationStats,
+    RecommendationType, RecommendationPriority
+)
 
 __all__ = [
     "User", "UserCreate", "UserUpdate", "UserInDB",
@@ -34,4 +39,7 @@ __all__ = [
     "RecommendedTask", "DailyStudyPlanCreate", "DailyStudyPlanUpdate", 
     "DailyStudyPlanStart", "DailyStudyPlanComplete", "DailyStudyPlanResponse", "TodayPlanResponse",
     "LearningProfileUpdate", "LearningProfileResponse", "ProfileStatsResponse",
+    "RecommendationCreate", "RecommendationUpdate", "RecommendationInteraction",
+    "RecommendationResponse", "RecommendationListResponse", "RecommendationStats",
+    "RecommendationType", "RecommendationPriority",
 ]

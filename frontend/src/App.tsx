@@ -28,6 +28,7 @@ import FlashcardReviewPage from './pages/FlashcardReviewPage'
 import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
 import LearningGoalsPage from './pages/LearningGoalsPage'
 import TodayPlanPage from './pages/TodayPlanPage'
+import RecommendationsPage from './pages/RecommendationsPage'
 
 // Components
 import Layout from './components/Layout'
@@ -103,6 +104,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <LearningGoalsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recommendations"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RecommendationsPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { useAuthStore } from "../store/authStore"
-import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2, Target, Calendar, Clock, ArrowRight } from "lucide-react"
+import { BookOpen, FileText, CreditCard, Brain, TrendingUp, Loader2, Target, Calendar, Clock, ArrowRight, Sparkles } from "lucide-react"
 import { useUserStats } from "../hooks/useProgress"
 import { useRecentActivities } from "../hooks/useProgress"
 import dailyPlanService from "../services/dailyPlanService"
+import recommendationService from "../services/recommendationService"
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -20,6 +21,13 @@ export default function DashboardPage() {
   const { data: todayPlan } = useQuery({
     queryKey: ['todayPlan'],
     queryFn: () => dailyPlanService.getTodayPlan(),
+    refetchOnWindowFocus: false
+  })
+
+  // ⭐ NEW: Fetch active recommendations
+  const { data: recommendations = [] } = useQuery({
+    queryKey: ['activeRecommendations'],
+    queryFn: () => recommendationService.getActiveRecommendations(3),
     refetchOnWindowFocus: false
   })
 
@@ -235,6 +243,69 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 mb-3">No plan for today yet</p>
                 <Button size="sm" onClick={() => navigate('/today-plan')}>
                   Generate Plan
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recommendations Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-indigo-600" />
+                  Smart Recommendations
+                </CardTitle>
+                <CardDescription>Personalized suggestions for you</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate('/recommendations')}
+              >
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {recommendations.length > 0 ? (
+              <div className="space-y-3">
+                {recommendations.map((rec) => {
+                  const typeDisplay = recommendationService.getTypeDisplay(rec.type);
+                  const priorityColor = recommendationService.getPriorityColor(rec.priority);
+                  
+                  return (
+                    <div
+                      key={rec.id}
+                      className={`p-3 rounded-lg border-l-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors border-${priorityColor}-500`}
+                      onClick={() => navigate('/recommendations')}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{typeDisplay.icon}</span>
+                            <h4 className="text-sm font-semibold text-gray-900">{rec.title}</h4>
+                          </div>
+                          {rec.description && (
+                            <p className="text-xs text-gray-600 line-clamp-2">{rec.description}</p>
+                          )}
+                        </div>
+                        <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded bg-${priorityColor}-100 text-${priorityColor}-800`}>
+                          {rec.priority}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 mb-3">No recommendations available</p>
+                <Button size="sm" onClick={() => navigate('/recommendations')}>
+                  Generate Recommendations
                 </Button>
               </div>
             )}

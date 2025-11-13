@@ -9,6 +9,7 @@ from app.models.learning_profile import LearningProfile
 from app.models.learning_goal import LearningGoal
 from app.models.study_schedule import StudySchedule, DailyStudyPlan
 from app.models.study_session import StudySession, LearningAnalytics
+from app.models.recommendation import AdaptiveRecommendation, RecommendationType, RecommendationPriority
 
 __all__ = [
     # Core Models
@@ -25,4 +26,7 @@ __all__ = [
     "DailyStudyPlan",
     "StudySession",
     "LearningAnalytics",
+    "AdaptiveRecommendation",
+    "RecommendationType",
+    "RecommendationPriority",
 ]

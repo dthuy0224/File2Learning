@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.api_v1.endpoints import (
     auth, users, documents, flashcards, quizzes, ai, flashcard_sets, analytics,
-    learning_goals, daily_plans
+    learning_goals, daily_plans, recommendations
 )
 
 api_router = APIRouter()
@@ -20,3 +20,4 @@ api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 # Adaptive Learning Endpoints
 api_router.include_router(learning_goals.router, prefix="/goals", tags=["learning-goals"])
 api_router.include_router(daily_plans.router, prefix="/plans", tags=["daily-plans"])
+api_router.include_router(recommendations.router, prefix="/recommendations", tags=["recommendations"])

@@ -48,3 +48,4 @@ class User(Base):
     daily_plans = relationship("DailyStudyPlan", back_populates="user", cascade="all, delete-orphan")
     study_sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
     learning_analytics = relationship("LearningAnalytics", back_populates="user", cascade="all, delete-orphan")
+    adaptive_recommendations = relationship("AdaptiveRecommendation", back_populates="user", cascade="all, delete-orphan")
