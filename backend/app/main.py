@@ -21,24 +21,38 @@ app = FastAPI(
     version=settings.VERSION,
     description="AI-powered learning assistant that converts documents into interactive learning materials",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False  # Disable automatic redirect for trailing slashes
 )
 os.makedirs("app/static/avatars", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # CORS middleware
-origins = [
-    "http://localhost:3000",  # frontend (Next.js default)
+_default_origins = {
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:5173",  # Vite default port
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:5174",  # Vite alternative port
+    "http://localhost:5174",
     "http://127.0.0.1:5174",
-]
+}
+
+# Merge with settings.ALLOWED_HOSTS (which may come from env)
+allowed_hosts = getattr(settings, "ALLOWED_HOSTS", []) or []
+_default_origins.update(host.strip() for host in allowed_hosts if host)
+
+# Remove duplicates and None values
+origins = sorted(filter(None, _default_origins))
+
+# Allow all origins if explicitly configured via ALLOWED_HOSTS
+allow_all = "*" in allowed_hosts
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"] if allow_all else origins,
+    allow_origin_regex=".*" if allow_all else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

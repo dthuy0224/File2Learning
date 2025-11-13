@@ -324,18 +324,20 @@ async def oauth_callback(
         oauth_service.close()
 
         # Build RedirectResponse and set cookie (delete existing first)
-        redirect_url = f"{settings.FRONTEND_URL.rstrip('/')}/dashboard"
+        # Redirect to frontend OAuth callback handler, which will then redirect to dashboard
+        redirect_url = f"{settings.FRONTEND_URL.rstrip('/')}/auth/oauth/{provider}/callback"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         # clear prior cookie (just in case)
-        response.delete_cookie("access_token", path="/")
+        response.delete_cookie("access_token", path="/", domain=None)
         response.set_cookie(
             key="access_token",
             value=jwt_token["access_token"],
             httponly=True,
             secure=settings.FRONTEND_URL.startswith("https://"),
             samesite="lax",
-            max_age=3600,
-            path="/"
+            max_age=int(settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+            path="/",
+            domain=None  # Let browser determine domain
         )
         return response
 

@@ -11,6 +11,17 @@ from app.schemas import learning_goal as schemas
 router = APIRouter()
 
 
+def _create_goal_impl(
+    *,
+    db: Session,
+    goal_in: schemas.LearningGoalCreate,
+    current_user: User,
+):
+    goal = crud_learning_goal.create_goal(db, goal=goal_in, user_id=current_user.id)
+    return goal
+
+
+@router.post("", response_model=schemas.LearningGoalResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=schemas.LearningGoalResponse, status_code=status.HTTP_201_CREATED)
 def create_goal(
     *,
@@ -21,10 +32,24 @@ def create_goal(
     """
     Create new learning goal
     """
-    goal = crud_learning_goal.create_goal(db, goal=goal_in, user_id=current_user.id)
-    return goal
+    return _create_goal_impl(db=db, goal_in=goal_in, current_user=current_user)
 
 
+def _read_goals_impl(
+    db: Session,
+    current_user: User,
+    status: str = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    """Internal implementation for read_goals"""
+    goals = crud_learning_goal.get_goals(
+        db, user_id=current_user.id, status=status, skip=skip, limit=limit
+    )
+    return goals
+
+
+@router.get("", response_model=List[schemas.LearningGoalResponse])
 @router.get("/", response_model=List[schemas.LearningGoalResponse])
 def read_goals(
     db: Session = Depends(get_db),
@@ -36,10 +61,7 @@ def read_goals(
     """
     Get all learning goals for current user
     """
-    goals = crud_learning_goal.get_goals(
-        db, user_id=current_user.id, status=status, skip=skip, limit=limit
-    )
-    return goals
+    return _read_goals_impl(db=db, current_user=current_user, status=status, skip=skip, limit=limit)
 
 
 @router.get("/active", response_model=List[schemas.LearningGoalResponse])

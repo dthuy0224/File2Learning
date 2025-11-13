@@ -40,6 +40,39 @@ router = APIRouter()
 AVATAR_DIR = "app/static/avatars"
 os.makedirs(AVATAR_DIR, exist_ok=True)
 
+def _normalize_learning_goals(raw_goals) -> list[str]:
+    """Ensure learning goals are consistently represented as list[str]."""
+    if not raw_goals:
+        return []
+    if isinstance(raw_goals, list):
+        return [str(goal) for goal in raw_goals]
+    return [str(raw_goals)]
+
+
+def _user_to_user_out(user: UserModel) -> UserOut:
+    """Convert ORM user instance to UserOut schema safely."""
+    learning_goals = _normalize_learning_goals(getattr(user, "legacy_learning_goals", None))
+
+    user_out = UserOut(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        full_name=user.full_name,
+        learning_goals=learning_goals or None,
+        difficulty_preference=user.difficulty_preference,
+        daily_study_time=user.daily_study_time,
+        created_at=user.created_at,
+        oauth_avatar=user.oauth_avatar,
+        avatar_url=getattr(user, "avatar_url", None),
+    )
+
+    user_out.needs_setup = not (
+        learning_goals
+        and user.difficulty_preference
+        and user.daily_study_time
+    )
+
+    return user_out
 
 
 @router.post("/", response_model=UserResponse)
@@ -71,14 +104,7 @@ def update_user_me(
 @router.get("/me", response_model=UserOut)
 def read_user_me(current_user: UserModel = Depends(deps.get_current_user)):
     """Return current user info + whether they need onboarding setup."""
-    user_data = UserOut.model_validate(current_user)
-    user_data.needs_setup = not (
-        current_user.legacy_learning_goals
-        and len(current_user.legacy_learning_goals) > 0
-        and current_user.difficulty_preference
-        and current_user.daily_study_time
-    )
-    return user_data
+    return _user_to_user_out(current_user)
 
 
 
@@ -98,7 +124,7 @@ def setup_learning_preferences(
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return _user_to_user_out(current_user)
 
 
 
