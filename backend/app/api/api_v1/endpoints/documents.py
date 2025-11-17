@@ -193,11 +193,14 @@ def delete_document(
     """
     Delete a document and its associated file.
     """
-    document_obj = document.remove(db=db, id=document_id)
+    document_obj = document.get(db=db, id=document_id)
     if not document_obj:
         raise HTTPException(status_code=404, detail="Document not found")
     if document_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    # Remove document after permission check
+    document.remove(db=db, id=document_id)
 
     # Delete physical file if exists
     if document_obj.file_path:
