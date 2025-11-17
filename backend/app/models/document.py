@@ -29,6 +29,15 @@ class Document(Base):
     processing_status = Column(String, default='pending')  # 'pending', 'processing', 'completed', 'failed'
     processing_error = Column(Text, nullable=True)
     key_vocabulary = Column(JSON, nullable=True)
+    summary_status = Column(String, default='pending')
+    summary_error = Column(Text, nullable=True)
+    summary_generated_at = Column(DateTime, nullable=True)
+    vocab_status = Column(String, default='pending')
+    vocab_error = Column(Text, nullable=True)
+    vocab_generated_at = Column(DateTime, nullable=True)
+    quiz_status = Column(String, default='pending')
+    quiz_error = Column(Text, nullable=True)
+    quiz_generated_at = Column(DateTime, nullable=True)
 
     # Content quality metrics
     content_quality = Column(String, nullable=True)  # 'excellent', 'good', 'fair', 'poor', 'empty', 'invalid'

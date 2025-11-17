@@ -10,6 +10,15 @@ class DocumentBase(BaseModel):
     document_type: Optional[str] = None
     difficulty_level: Optional[str] = 'medium'
     key_vocabulary: Optional[List[Dict[str, str]]] = None
+    summary_status: Optional[str] = None
+    summary_error: Optional[str] = None
+    summary_generated_at: Optional[datetime] = None
+    vocab_status: Optional[str] = None
+    vocab_error: Optional[str] = None
+    vocab_generated_at: Optional[datetime] = None
+    quiz_status: Optional[str] = None
+    quiz_error: Optional[str] = None
+    quiz_generated_at: Optional[datetime] = None
 
 
 # Properties to receive on creation
@@ -38,6 +47,15 @@ class DocumentUpdate(DocumentBase):
     quality_score: Optional[int] = None
     language_detected: Optional[str] = None
     encoding_issues: Optional[int] = None
+    summary_status: Optional[str] = None
+    summary_error: Optional[str] = None
+    summary_generated_at: Optional[datetime] = None
+    vocab_status: Optional[str] = None
+    vocab_error: Optional[str] = None
+    vocab_generated_at: Optional[datetime] = None
+    quiz_status: Optional[str] = None
+    quiz_error: Optional[str] = None
+    quiz_generated_at: Optional[datetime] = None
 
 
 # Properties shared by models stored in DB

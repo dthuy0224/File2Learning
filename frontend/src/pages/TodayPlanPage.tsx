@@ -13,6 +13,7 @@ import {
 import { toast } from 'react-hot-toast'
 import dailyPlanService, { CompletePlanData } from '@/services/dailyPlanService'
 import studyScheduleService from '@/services/studyScheduleService'
+import { invalidateProgressQueries } from '@/utils/progressInvalidation'
 
 // Helper function (instead of date-fns)
 const formatDate = (dateString: string) => {
@@ -50,6 +51,7 @@ export default function TodayPlanPage() {
     mutationFn: (planId: number) => dailyPlanService.startPlan(planId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
+      invalidateProgressQueries(queryClient)
       toast.success('Plan started! Good luck! 💪')
     }
   })
@@ -59,8 +61,7 @@ export default function TodayPlanPage() {
     mutationFn: ({ planId, data }: { planId: number; data: CompletePlanData }) =>
       dailyPlanService.completePlan(planId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
-      queryClient.invalidateQueries({ queryKey: ['userStats'] })
+      invalidateProgressQueries(queryClient, { includeTodayPlan: true })
       toast.success('Awesome! Plan completed! 🎉')
       setIsCompleteDialogOpen(false)
       setCompletionData({})
@@ -73,6 +74,7 @@ export default function TodayPlanPage() {
       dailyPlanService.skipPlan(planId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
+      invalidateProgressQueries(queryClient)
       toast.success('Plan skipped')
     }
   })

@@ -7,6 +7,7 @@ import { Progress } from '../components/ui/progress';
 import { Loader2, ArrowLeft, CheckCircle, Keyboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MarkdownText from '../components/MarkdownText';
+import { invalidateProgressQueries } from '@/utils/progressInvalidation';
 
 // Quality rating levels corresponding to 'quality' score (0-5) for SM-2 algorithm
 const QUALITY_LEVELS = [
@@ -51,7 +52,7 @@ export default function FlashcardReviewPage() {
         const accuracy = Math.round((correctCount / reviewedCards) * 100);
         toast.success(`Review completed! ${reviewedCards} cards, ${accuracy}% accuracy`);
         queryClient.invalidateQueries({ queryKey: ['flashcards'] });
-        queryClient.invalidateQueries({ queryKey: ['userStats'] });
+        invalidateProgressQueries(queryClient, { includeTodayPlan: true });
       }
     },
     onError: () => {

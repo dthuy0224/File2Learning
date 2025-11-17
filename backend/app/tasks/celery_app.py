@@ -6,7 +6,11 @@ celery_app = Celery(
     "file2learning",
     broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     backend=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-    include=["app.tasks.document_tasks"]
+    include=[
+        "app.tasks.document_tasks",
+        "app.tasks.learning_tasks",
+        "app.tasks.document_ai_tasks",
+    ],
 )
 
 # Optional configuration

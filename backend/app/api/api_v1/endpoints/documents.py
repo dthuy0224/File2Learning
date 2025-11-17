@@ -305,6 +305,15 @@ def get_document_status(
         "processed_at": document_obj.processed_at,
         "processing_error": document_obj.processing_error,
         "title": document_obj.title,
+        "summary_status": document_obj.summary_status,
+        "summary_error": document_obj.summary_error,
+        "summary_generated_at": document_obj.summary_generated_at,
+        "vocab_status": document_obj.vocab_status,
+        "vocab_error": document_obj.vocab_error,
+        "vocab_generated_at": document_obj.vocab_generated_at,
+        "quiz_status": document_obj.quiz_status,
+        "quiz_error": document_obj.quiz_error,
+        "quiz_generated_at": document_obj.quiz_generated_at,
         "progress": progress_info,
         "key_vocabulary": document_obj.key_vocabulary
     }
@@ -355,6 +364,12 @@ def get_documents_status_batch(
                 "created_at": document_obj.created_at,
                 "processed_at": document_obj.processed_at,
                 "processing_error": document_obj.processing_error,
+                "summary_status": document_obj.summary_status,
+                "summary_generated_at": document_obj.summary_generated_at,
+                "vocab_status": document_obj.vocab_status,
+                "vocab_generated_at": document_obj.vocab_generated_at,
+                "quiz_status": document_obj.quiz_status,
+                "quiz_generated_at": document_obj.quiz_generated_at,
                 "progress": progress_info,
                 "key_vocabulary": document_obj.key_vocabulary
             }
