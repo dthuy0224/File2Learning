@@ -44,7 +44,7 @@ export default function LandingPage() {
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">AI Learning Material</span>
+            <span className="text-2xl font-bold text-gray-900">File2Learning</span>
           </div>
           <div className="space-x-4">
             <Button variant="ghost" asChild>
@@ -128,7 +128,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <BookOpen className="h-6 w-6" />
-            <span className="text-lg font-semibold">AI Learning Material</span>
+            <span className="text-lg font-semibold">File2Learning</span>
           </div>
           <p className="text-gray-400">
             Transform your English learning journey with AI-powered study materials

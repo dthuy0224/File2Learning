@@ -25,6 +25,11 @@ from app.schemas.recommendation import (
     RecommendationResponse, RecommendationListResponse, RecommendationStats,
     RecommendationType, RecommendationPriority
 )
+from app.schemas.study_schedule import (
+    ScheduleConfig, Milestone, StudyScheduleBase, StudyScheduleCreate,
+    StudyScheduleUpdate, StudyScheduleResponse, StudyScheduleListResponse,
+    StudyScheduleStats
+)
 
 __all__ = [
     "User", "UserCreate", "UserUpdate", "UserInDB",
@@ -42,4 +47,7 @@ __all__ = [
     "RecommendationCreate", "RecommendationUpdate", "RecommendationInteraction",
     "RecommendationResponse", "RecommendationListResponse", "RecommendationStats",
     "RecommendationType", "RecommendationPriority",
+    "ScheduleConfig", "Milestone", "StudyScheduleBase", "StudyScheduleCreate",
+    "StudyScheduleUpdate", "StudyScheduleResponse", "StudyScheduleListResponse",
+    "StudyScheduleStats",
 ]

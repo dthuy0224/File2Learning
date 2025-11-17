@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string
-  // 🧩 nếu bạn có thêm env khác, khai báo thêm ở đây
+  // If you have additional env variables, declare them here
   readonly VITE_SOME_OTHER_KEY?: string
 }
 

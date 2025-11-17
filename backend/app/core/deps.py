@@ -13,19 +13,19 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """
-    ✅ Get current authenticated user from:
-    1️⃣ Authorization header (Bearer <token>)
-    2️⃣ HttpOnly cookie (access_token)
+    Get current authenticated user from:
+    1. Authorization header (Bearer <token>)
+    2. HttpOnly cookie (access_token)
     """
 
     token: Optional[str] = None
 
-    # 1️⃣ Lấy token từ header Authorization
+    # 1. Get token from Authorization header
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.lower().startswith("bearer "):
         token = auth_header.split(" ")[1].strip()
 
-    # 2️⃣ Nếu không có, lấy token từ cookie
+    # 2. If not found, get token from cookie
     if not token:
         token = request.cookies.get("access_token")
 
@@ -36,7 +36,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 3️⃣ Xác minh token hợp lệ
+    # 3. Verify token is valid
     try:
         user_id = verify_token(token)
     except Exception as e:
@@ -54,7 +54,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 4️⃣ Lấy user từ DB
+    # 4. Get user from DB
     current_user = user.get(db, id=int(user_id))
     if not current_user:
         raise HTTPException(
@@ -75,7 +75,7 @@ def get_current_user(
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """✅ Returns only active users"""
+    """Returns only active users"""
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

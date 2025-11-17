@@ -117,7 +117,8 @@ class DailyStudyPlan(Base):
     #     "estimated_minutes": 10,
     #     "priority": "high",
     #     "reason": "Due for review (SRS)",
-    #     "topic": "Grammar"
+    #     "topic": "Grammar",
+    #     "recommendation_id": 42  
     #   },
     #   {
     #     "type": "quiz",
@@ -125,9 +126,14 @@ class DailyStudyPlan(Base):
     #     "quiz_title": "Business Vocabulary",
     #     "estimated_minutes": 15,
     #     "priority": "medium",
-    #     "reason": "Weak topic: Business English (avg 65%)"
+    #     "reason": "Weak topic: Business English (avg 65%)",
+    #     "recommendation_id": 43  
     #   }
     # ]
+    
+    # Source Recommendations (NEW: Track which recommendations were used)
+    source_recommendation_ids = Column(JSON, nullable=True)
+    # [42, 43, 44] - IDs of recommendations that were included in this plan
     
     # Time Budget
     total_estimated_minutes = Column(Integer, nullable=False)

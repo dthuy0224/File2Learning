@@ -118,11 +118,11 @@ def is_token_blacklisted(token: str) -> bool:
 # ===========================
 @router.post("/register", response_model=UserResponse)
 def register_user(new_user: UserCreate, db: Session = Depends(get_db)):
-    # Check email trùng
+    # Check for duplicate email
     if crud_user.get_by_email(db, email=new_user.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Check username trùng
+    # Check for duplicate username
     if crud_user.get_by_username(db, username=new_user.username):
         raise HTTPException(status_code=400, detail="Username already taken")
 
@@ -343,7 +343,7 @@ async def oauth_callback(
 
     except Exception as e:
         logger.exception("OAuth callback handling failed for %s: %s", provider, e)
-        safe_error = quote(str(e))  # ✅ mã hoá chuỗi lỗi cho hợp lệ URL
+        safe_error = quote(str(e))  # Encode error string for valid URL
         err_url = f"{settings.FRONTEND_URL.rstrip('/')}/login?error={safe_error}"
         return RedirectResponse(url=err_url)
 

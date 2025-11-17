@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge'
 import { Loader2, Clock, CheckCircle, AlertCircle, ArrowLeft, Send } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import quizService from '../services/quizService'
+import { invalidateProgressQueries } from '@/utils/progressInvalidation'
 
 interface QuizQuestion {
   id: number
@@ -172,10 +173,7 @@ export default function QuizTakingPage() {
       })
 
       // Invalidate all progress and stats queries to trigger refresh
-      queryClient.invalidateQueries({ queryKey: ['userStats'] })
-      queryClient.invalidateQueries({ queryKey: ['recentActivities'] })
-      queryClient.invalidateQueries({ queryKey: ['performanceHistory'] })
-      queryClient.invalidateQueries({ queryKey: ['fullProgress'] })
+      invalidateProgressQueries(queryClient, { includeTodayPlan: true })
 
       // Navigate to results page
       navigate(`/attempts/${result.id}/results`)

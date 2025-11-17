@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Sparkles, RefreshCw, TrendingUp, CheckCircle2, XCircle, 
-  Eye, Clock, Target, AlertCircle 
+  Eye, Clock, Target, AlertCircle, Calendar 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import recommendationService, { 
@@ -10,6 +10,7 @@ import recommendationService, {
   RecommendationType, 
   RecommendationPriority 
 } from '../services/recommendationService';
+import dailyPlanService from '../services/dailyPlanService';
 
 const RecommendationsPage = () => {
   const queryClient = useQueryClient();
@@ -33,6 +34,15 @@ const RecommendationsPage = () => {
     queryKey: ['recommendation-stats'],
     queryFn: () => recommendationService.getStats()
   });
+
+  // Fetch today's plan to check which recommendations are included
+  const { data: todayPlanData } = useQuery({
+    queryKey: ['today-plan'],
+    queryFn: () => dailyPlanService.getTodayPlan()
+  });
+
+  // Get list of recommendation IDs that are in today's plan
+  const recommendationsInPlan = todayPlanData?.plan?.source_recommendation_ids || [];
 
   // Generate recommendations mutation
   const generateMutation = useMutation({
@@ -105,6 +115,10 @@ const RecommendationsPage = () => {
 
   const getTypeDisplay = (type: RecommendationType) => {
     return recommendationService.getTypeDisplay(type);
+  };
+
+  const isInTodayPlan = (recId: number) => {
+    return recommendationsInPlan.includes(recId);
   };
 
   if (isLoading) {
@@ -273,6 +287,12 @@ const RecommendationsPage = () => {
                       {!rec.is_viewed && (
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                           NEW
+                        </span>
+                      )}
+                      {isInTodayPlan(rec.id) && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-300 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          In Today's Plan
                         </span>
                       )}
                     </div>

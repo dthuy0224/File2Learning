@@ -20,7 +20,7 @@ import { useAuthStore } from "@/store/authStore"
 
 export default function SetupLearningPage() {
   const navigate = useNavigate()
-  const { updateUser, fetchUser } = useAuthStore() // ✅ thêm để cập nhật user
+  const { updateUser, fetchUser } = useAuthStore() // Added to update user
 
   const [learningGoals, setLearningGoals] = useState<string[]>([])
   const [difficulty, setDifficulty] = useState<"" | "easy" | "medium" | "hard">("")
@@ -53,14 +53,14 @@ export default function SetupLearningPage() {
 
     setLoading(true)
     try {
-      // ✅ Gửi setup info
+      // Send setup info
       const res = await api.put("/users/me/setup-learning", {
         learning_goals: learningGoals,
         difficulty_preference: difficulty,
         daily_study_time: Number(dailyTime),
       })
 
-      // ✅ Cập nhật user trong store (ưu tiên res.data, fallback fetchUser)
+      // Update user in store (prefer res.data, fallback fetchUser)
       if (res?.data) {
         updateUser({ ...res.data, needs_setup: false })
       } else {

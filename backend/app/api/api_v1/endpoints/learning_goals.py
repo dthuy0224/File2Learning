@@ -7,6 +7,7 @@ from app.core import deps
 from app.models.user import User
 from app.crud import crud_learning_goal
 from app.schemas import learning_goal as schemas
+from app.services.milestone_generator import generate_milestones_for_goal
 
 router = APIRouter()
 
@@ -28,11 +29,23 @@ def create_goal(
     db: Session = Depends(get_db),
     goal_in: schemas.LearningGoalCreate,
     current_user: User = Depends(deps.get_current_user),
+    auto_generate_milestones: bool = True,
 ):
     """
-    Create new learning goal
+    Create new learning goal with optional auto-generated milestones
     """
-    return _create_goal_impl(db=db, goal_in=goal_in, current_user=current_user)
+    goal = _create_goal_impl(db=db, goal_in=goal_in, current_user=current_user)
+    
+    # Auto-generate milestones if requested
+    if auto_generate_milestones:
+        milestones = generate_milestones_for_goal(goal)
+        if milestones:
+            goal_update = schemas.LearningGoalUpdate(milestones=milestones)
+            goal = crud_learning_goal.update_goal(
+                db, goal_id=goal.id, user_id=current_user.id, goal_update=goal_update
+            )
+    
+    return goal
 
 
 def _read_goals_impl(
@@ -143,3 +156,28 @@ def delete_goal(
             detail="Learning goal not found"
         )
     return None
+
+
+@router.post("/{goal_id}/generate-milestones", response_model=schemas.LearningGoalResponse)
+def generate_milestones(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Generate milestones for an existing learning goal
+    """
+    goal = crud_learning_goal.get_goal(db, goal_id=goal_id, user_id=current_user.id)
+    if not goal:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learning goal not found"
+        )
+    
+    milestones = generate_milestones_for_goal(goal)
+    goal_update = schemas.LearningGoalUpdate(milestones=milestones)
+    updated_goal = crud_learning_goal.update_goal(
+        db, goal_id=goal_id, user_id=current_user.id, goal_update=goal_update
+    )
+    
+    return updated_goal

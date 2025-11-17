@@ -178,7 +178,8 @@ def get_document_content(
         "content": document_obj.content,
         "word_count": document_obj.word_count,
         "document_type": document_obj.document_type,
-        "created_at": document_obj.created_at
+        "created_at": document_obj.created_at,
+        "key_vocabulary": document_obj.key_vocabulary
     }
 
 
@@ -192,11 +193,14 @@ def delete_document(
     """
     Delete a document and its associated file.
     """
-    document_obj = document.remove(db=db, id=document_id)
+    document_obj = document.get(db=db, id=document_id)
     if not document_obj:
         raise HTTPException(status_code=404, detail="Document not found")
     if document_obj.owner_id != current_user.id:
         raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    # Remove document after permission check
+    document.remove(db=db, id=document_id)
 
     # Delete physical file if exists
     if document_obj.file_path:
@@ -304,7 +308,17 @@ def get_document_status(
         "processed_at": document_obj.processed_at,
         "processing_error": document_obj.processing_error,
         "title": document_obj.title,
-        "progress": progress_info
+        "summary_status": document_obj.summary_status,
+        "summary_error": document_obj.summary_error,
+        "summary_generated_at": document_obj.summary_generated_at,
+        "vocab_status": document_obj.vocab_status,
+        "vocab_error": document_obj.vocab_error,
+        "vocab_generated_at": document_obj.vocab_generated_at,
+        "quiz_status": document_obj.quiz_status,
+        "quiz_error": document_obj.quiz_error,
+        "quiz_generated_at": document_obj.quiz_generated_at,
+        "progress": progress_info,
+        "key_vocabulary": document_obj.key_vocabulary
     }
 
 
@@ -353,7 +367,14 @@ def get_documents_status_batch(
                 "created_at": document_obj.created_at,
                 "processed_at": document_obj.processed_at,
                 "processing_error": document_obj.processing_error,
-                "progress": progress_info
+                "summary_status": document_obj.summary_status,
+                "summary_generated_at": document_obj.summary_generated_at,
+                "vocab_status": document_obj.vocab_status,
+                "vocab_generated_at": document_obj.vocab_generated_at,
+                "quiz_status": document_obj.quiz_status,
+                "quiz_generated_at": document_obj.quiz_generated_at,
+                "progress": progress_info,
+                "key_vocabulary": document_obj.key_vocabulary
             }
         except Exception as e:
             results[str(doc_id)] = {"error": str(e)}

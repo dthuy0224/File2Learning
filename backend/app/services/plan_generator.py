@@ -8,7 +8,11 @@ from app.models.flashcard import Flashcard
 from app.models.quiz import Quiz, QuizAttempt
 from app.models.learning_goal import LearningGoal
 from app.models.learning_profile import LearningProfile
+from app.models.recommendation import AdaptiveRecommendation
+from app.models.study_schedule import StudySchedule
 from app.schemas.daily_plan import RecommendedTask, DailyStudyPlanCreate
+from app.crud.crud_recommendation import crud_recommendation
+from app.crud import crud_study_schedule
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +23,9 @@ class DailyPlanGenerator:
         self.db = db
         self.user_id = user_id
         self.profile = self._get_or_create_profile()
+        self.schedule = self._get_active_schedule()  # NEW: Get active schedule
+        self.recommendations = []  # Will be populated during plan generation
+        self.used_recommendation_ids = []  # Track which recommendations were used
         
     def _get_or_create_profile(self) -> LearningProfile:
         """Get user's learning profile or create default"""
@@ -40,11 +47,69 @@ class DailyPlanGenerator:
         
         return profile
     
+    def _get_active_schedule(self) -> Optional[StudySchedule]:
+        """Get user's active study schedule"""
+        return crud_study_schedule.get_active_schedule(self.db, user_id=self.user_id)
+    
+    def _get_or_generate_recommendations(self) -> List[AdaptiveRecommendation]:
+        """Get existing recommendations or generate new ones"""
+        # Check if we have fresh recommendations (< 24 hours old)
+        existing_recs = crud_recommendation.get_active_recommendations(
+            self.db, user_id=self.user_id, limit=20
+        )
+        
+        # Check if recommendations are stale (older than 24 hours)
+        if existing_recs:
+            latest_rec = max(existing_recs, key=lambda r: r.created_at)
+            hours_old = (datetime.utcnow() - latest_rec.created_at).total_seconds() / 3600
+            
+            if hours_old > 24:
+                # Recommendations are stale, generate new ones
+                logger.info(f"Recommendations are {hours_old:.1f} hours old, generating new ones")
+                from app.services.recommendation_engine import generate_recommendations_for_user
+                generate_recommendations_for_user(self.db, self.user_id, max_recommendations=15)
+                existing_recs = crud_recommendation.get_active_recommendations(
+                    self.db, user_id=self.user_id, limit=20
+                )
+        elif not existing_recs:
+            # No recommendations exist, generate them
+            logger.info(f"No recommendations found, generating new ones")
+            from app.services.recommendation_engine import generate_recommendations_for_user
+            generate_recommendations_for_user(self.db, self.user_id, max_recommendations=15)
+            existing_recs = crud_recommendation.get_active_recommendations(
+                self.db, user_id=self.user_id, limit=20
+            )
+        
+        return existing_recs or []
+    
+    def _find_matching_recommendation(self, rec_type: str, topic: str = None) -> Optional[AdaptiveRecommendation]:
+        """Find a matching recommendation from the pool"""
+        for rec in self.recommendations:
+            # Skip if already used
+            if rec.id in self.used_recommendation_ids:
+                continue
+            
+            # Match by type
+            if rec.type == rec_type:
+                # If topic specified, try to match
+                if topic:
+                    rec_topic = rec.extra_data.get('topic') if rec.extra_data else None
+                    if rec_topic and rec_topic.lower() == topic.lower():
+                        return rec
+                else:
+                    return rec
+        
+        return None
+    
     def generate_plan(self, plan_date: date = None) -> DailyStudyPlanCreate:
         if not plan_date:
             plan_date = date.today()
         
         logger.info(f"Generating plan for user {self.user_id} on {plan_date}")
+        
+        # Step 0: Get or generate recommendations (NEW!)
+        self.recommendations = self._get_or_generate_recommendations()
+        logger.info(f"Found {len(self.recommendations)} active recommendations")
         
         # Step 1: Get due flashcards (HIGHEST PRIORITY)
         due_flashcards = self._get_due_flashcards(plan_date)
@@ -55,10 +120,21 @@ class DailyPlanGenerator:
         # Step 3: Get active goals
         active_goals = self._get_active_goals()
         
-        # Step 4: Calculate time budget
-        time_budget = int(self.profile.recommended_daily_load)
+        # Step 4: Calculate time budget (use schedule config if available)
+        if self.schedule and self.schedule.schedule_config:
+            config = self.schedule.schedule_config
+            time_budget = config.get('daily_minutes', int(self.profile.recommended_daily_load))
+            # Ensure within schedule limits
+            if self.schedule.max_daily_load:
+                time_budget = min(time_budget, self.schedule.max_daily_load)
+            if self.schedule.min_daily_load:
+                time_budget = max(time_budget, self.schedule.min_daily_load)
+        else:
+            time_budget = int(self.profile.recommended_daily_load)
         
-        # Step 5: Generate tasks
+        logger.info(f"Time budget: {time_budget} minutes (schedule: {self.schedule.id if self.schedule else 'none'})")
+        
+        # Step 5: Generate tasks (now with recommendations)
         tasks = self._generate_tasks(
             due_flashcards=due_flashcards,
             weak_topics=weak_topics,
@@ -79,7 +155,9 @@ class DailyPlanGenerator:
             recommended_tasks=tasks,
             total_estimated_minutes=sum(t.estimated_minutes for t in tasks),
             priority_level=priority,
-            difficulty_level=difficulty
+            difficulty_level=difficulty,
+            schedule_id=self.schedule.id if self.schedule else None,  # NEW: Link to schedule
+            source_recommendation_ids=self.used_recommendation_ids
         )
     
     def _get_due_flashcards(self, plan_date: date) -> List[Flashcard]:
@@ -167,6 +245,14 @@ class DailyPlanGenerator:
             flashcard_time = int(min(flashcard_time, time_budget * 0.4))  # Max 40% of budget
             
             if flashcard_time >= 5:  # Minimum 5 minutes
+                # Try to find matching recommendation
+                flashcard_rec = self._find_matching_recommendation('review_flashcard')
+                rec_id = None
+                if flashcard_rec:
+                    rec_id = flashcard_rec.id
+                    self.used_recommendation_ids.append(rec_id)
+                    logger.info(f"Linked flashcard task to recommendation #{rec_id}")
+                
                 tasks.append(RecommendedTask(
                     type="flashcard_review",
                     entity_ids=[fc.id for fc in due_flashcards[:num_cards]],
@@ -174,7 +260,8 @@ class DailyPlanGenerator:
                     estimated_minutes=flashcard_time,
                     priority="high",
                     reason=f"Due for review (SRS) - {num_cards} cards ready",
-                    topic="Mixed"
+                    topic="Mixed",
+                    recommendation_id=rec_id  # NEW!
                 ))
                 time_used += flashcard_time
         
@@ -192,6 +279,17 @@ class DailyPlanGenerator:
                 if quiz:
                     quiz_time = 15  # 15 minutes per quiz
                     if time_used + quiz_time <= time_budget:
+                        # Try to find matching recommendation
+                        quiz_rec = self._find_matching_recommendation('focus_weak_area', weak_topic["topic"])
+                        if not quiz_rec:
+                            quiz_rec = self._find_matching_recommendation('take_quiz')
+                        
+                        rec_id = None
+                        if quiz_rec:
+                            rec_id = quiz_rec.id
+                            self.used_recommendation_ids.append(rec_id)
+                            logger.info(f"Linked quiz task to recommendation #{rec_id}")
+                        
                         tasks.append(RecommendedTask(
                             type="quiz",
                             entity_id=quiz.id,
@@ -199,7 +297,8 @@ class DailyPlanGenerator:
                             estimated_minutes=quiz_time,
                             priority="medium" if weak_topic["priority"] == "medium" else "high",
                             reason=f"Weak topic: {weak_topic['topic']} (avg {weak_topic['avg_score']:.0f}%)",
-                            topic=weak_topic["topic"]
+                            topic=weak_topic["topic"],
+                            recommendation_id=rec_id  # NEW!
                         ))
                         time_used += quiz_time
         

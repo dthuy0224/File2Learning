@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: '/api',  // ✅ Đúng URL backend
+  baseURL: '/api',  // Correct backend URL
   withCredentials: true,
 })
 

@@ -17,6 +17,7 @@ class RecommendedTask(BaseModel):
     reason: Optional[str] = Field(None, description="Why this task is recommended")
     topic: Optional[str] = Field(None, description="Topic/category")
     difficulty: Optional[str] = Field(None, description="Difficulty level")
+    recommendation_id: Optional[int] = Field(None, description="Source recommendation ID if task came from a recommendation")
     
     @field_validator('type')
     @classmethod
@@ -58,6 +59,7 @@ class DailyStudyPlanBase(BaseModel):
 class DailyStudyPlanCreate(DailyStudyPlanBase):
     """Schema for creating a daily study plan (usually AI-generated)"""
     schedule_id: Optional[int] = None
+    source_recommendation_ids: Optional[List[int]] = Field(None, description="IDs of recommendations used to create this plan")
 
 
 # Update schema (user marks completion, adds notes)
@@ -118,6 +120,7 @@ class DailyStudyPlanResponse(DailyStudyPlanBase):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     updated_at: datetime
+    source_recommendation_ids: Optional[List[int]] = None
     
     model_config = {"from_attributes": True}
 

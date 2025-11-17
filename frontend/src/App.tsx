@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/authStore'
-import { userService } from './services/userService' // ✅ thêm dòng này
+import { userService } from './services/userService'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -29,6 +29,7 @@ import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
 import LearningGoalsPage from './pages/LearningGoalsPage'
 import TodayPlanPage from './pages/TodayPlanPage'
 import RecommendationsPage from './pages/RecommendationsPage'
+import StudySchedulePage from './pages/StudySchedulePage'
 
 // Components
 import Layout from './components/Layout'
@@ -44,7 +45,7 @@ function App() {
         if (user) updateUser(user)
       } catch (err) {
         console.error('❌ Failed to fetch user:', err)
-        logout() // nếu token hết hạn thì logout
+        logout() // if token expires then logout
       }
     }
 
@@ -114,6 +115,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <RecommendationsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/study-schedule"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudySchedulePage />
               </Layout>
             </ProtectedRoute>
           }
