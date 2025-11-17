@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -9,6 +9,7 @@ class DocumentBase(BaseModel):
     title: Optional[str] = None
     document_type: Optional[str] = None
     difficulty_level: Optional[str] = 'medium'
+    key_vocabulary: Optional[List[Dict[str, str]]] = None
 
 
 # Properties to receive on creation

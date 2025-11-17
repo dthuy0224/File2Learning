@@ -364,12 +364,12 @@ const ProgressPage = () => {
             </div>
           ) : recentActivities && recentActivities.length > 0 ? (
             <div className="space-y-4">
-              {recentActivities.map((activity) => {
+              {recentActivities.map((activity, index) => {
                 const IconComponent = activity.type === 'quiz' ? Target :
                                     activity.type === 'flashcard' ? BrainCircuit : Activity
                 return (
                   <div
-                    key={activity.id}
+                    key={`${activity.id ?? 'activity'}-${index}`}
                     className="flex items-center space-x-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
                   >
                     <div className={`p-2 rounded-full ${

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -28,6 +28,7 @@ class Document(Base):
     # Processing status
     processing_status = Column(String, default='pending')  # 'pending', 'processing', 'completed', 'failed'
     processing_error = Column(Text, nullable=True)
+    key_vocabulary = Column(JSON, nullable=True)
 
     # Content quality metrics
     content_quality = Column(String, nullable=True)  # 'excellent', 'good', 'fair', 'poor', 'empty', 'invalid'

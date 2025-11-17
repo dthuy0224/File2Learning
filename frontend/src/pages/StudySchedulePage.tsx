@@ -1,25 +1,27 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { 
-  Calendar, Plus, Edit, Trash2, CheckCircle2, XCircle, 
-  Clock, Target, TrendingUp, BarChart3, Settings, PlayCircle, RefreshCw, AlertTriangle
+  Calendar, Plus, Edit, Trash2, CheckCircle2, 
+  Clock, Target, TrendingUp, Settings, PlayCircle, RefreshCw, AlertTriangle,
+  BookOpen, Brain, CreditCard, ArrowRight, Info
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button' 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import studyScheduleService, { 
   StudySchedule, 
   StudyScheduleCreate, 
   StudyScheduleUpdate 
 } from '@/services/studyScheduleService'
+import dailyPlanService from '@/services/dailyPlanService'
 
 export default function StudySchedulePage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedSchedule, setSelectedSchedule] = useState<StudySchedule | null>(null)
@@ -53,6 +55,14 @@ export default function StudySchedulePage() {
     queryKey: ['active-schedule'],
     queryFn: () => studyScheduleService.getActiveSchedule(),
     retry: false
+  })
+
+  // Fetch today's plan (for Today View section)
+  const { data: todayPlan } = useQuery({
+    queryKey: ['todayPlan'],
+    queryFn: () => dailyPlanService.getTodayPlan(),
+    enabled: !!activeSchedule,
+    refetchOnWindowFocus: false
   })
 
   // Create schedule mutation
@@ -126,7 +136,7 @@ export default function StudySchedulePage() {
       if (result.adjusted) {
         toast.success(`Schedule adjusted! ${result.adjustment?.reason || ''}`)
       } else {
-        toast.info(result.reason || 'No adjustment needed')
+        toast(result.reason || 'No adjustment needed', { icon: 'ℹ️' })
       }
     },
     onError: () => {
@@ -213,6 +223,27 @@ export default function StudySchedulePage() {
     return labels[mode] || mode
   }
 
+  // Get schedule type visual identity (icons + colors)
+  const getScheduleTypeVisual = (type: string) => {
+    const visuals: Record<string, { icon: any, color: string, bg: string }> = {
+      goal_based: { icon: Target, color: 'text-blue-600', bg: 'bg-blue-100' },
+      time_based: { icon: Clock, color: 'text-green-600', bg: 'bg-green-100' },
+      exam_prep: { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
+      maintenance: { icon: RefreshCw, color: 'text-purple-600', bg: 'bg-purple-100' },
+      custom: { icon: Settings, color: 'text-gray-600', bg: 'bg-gray-100' }
+    }
+    return visuals[type] || visuals.custom
+  }
+
+  const getTaskIcon = (type: string) => {
+    switch (type) {
+      case 'flashcard_review': return CreditCard
+      case 'quiz': return Brain
+      case 'document_reading': return BookOpen
+      default: return Target
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -244,6 +275,88 @@ export default function StudySchedulePage() {
           </Button>
         </div>
       </div>
+
+      {/* Today's Plan Section - Priority 1 */}
+      {activeSchedule && todayPlan?.has_plan && todayPlan.plan && (
+        <Card className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">📚 Today's Study Plan</h2>
+                <p className="text-blue-100 text-sm">
+                  {new Date(todayPlan.plan.plan_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/today-plan')}
+                className="bg-white/20 hover:bg-white/30 border-white/30 text-white"
+              >
+                View Full Plan
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+
+            {/* Tasks Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {todayPlan.plan.recommended_tasks.slice(0, 3).map((task: any, idx: number) => {
+                const TaskIcon = getTaskIcon(task.type)
+                return (
+                  <div key={idx} className="bg-white/10 backdrop-blur rounded-lg p-4 border border-white/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <TaskIcon className="w-5 h-5" />
+                        <span className="text-sm opacity-90 capitalize">
+                          {task.type.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        {task.estimated_minutes}min
+                      </span>
+                    </div>
+                    <h3 className="font-semibold mb-2 text-sm">
+                      {task.title || task.type.replace('_', ' ')}
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full bg-white/20 hover:bg-white/30 border-white/30 text-white text-xs"
+                      onClick={() => {
+                        if (task.type === 'flashcard_review') navigate('/flashcards/review')
+                        else if (task.type === 'quiz' && task.entity_id) navigate(`/quizzes/${task.entity_id}/take`)
+                        else navigate('/today-plan')
+                      }}
+                    >
+                      Start Now →
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Progress Indicator */}
+            <div className="mt-4 pt-4 border-t border-white/20">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="opacity-90">Today's Progress</span>
+                <span className="font-semibold">
+                  {Number(todayPlan.plan.completion_percentage).toFixed(0)}%
+                </span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div
+                  className="bg-white h-2 rounded-full transition-all"
+                  style={{ width: `${Number(todayPlan.plan.completion_percentage)}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Active Schedule Banner */}
       {activeSchedule && (
@@ -291,7 +404,14 @@ export default function StudySchedulePage() {
             }`}
           >
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3 mb-4">
+                {/* Schedule Type Icon */}
+                <div className={`p-3 rounded-xl ${getScheduleTypeVisual(schedule.schedule_type).bg}`}>
+                  {(() => {
+                    const Icon = getScheduleTypeVisual(schedule.schedule_type).icon
+                    return <Icon className={`w-6 h-6 ${getScheduleTypeVisual(schedule.schedule_type).color}`} />
+                  })()}
+                </div>
                 <div className="flex-1">
                   <CardTitle className="text-lg">{schedule.schedule_name}</CardTitle>
                   <CardDescription>
@@ -304,6 +424,29 @@ export default function StudySchedulePage() {
                   </span>
                 )}
               </div>
+
+              {/* Progress Bar - Priority 1 */}
+              {schedule.total_days_scheduled > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-indigo-600">Progress</span>
+                    <span className="text-xs font-semibold text-indigo-600">
+                      {Math.round((schedule.days_completed / schedule.total_days_scheduled) * 100)}%
+                    </span>
+                  </div>
+                  <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-indigo-200">
+                    <div
+                      style={{
+                        width: `${(schedule.days_completed / schedule.total_days_scheduled) * 100}%`
+                      }}
+                      className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500"
+                    />
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {schedule.days_completed} of {schedule.total_days_scheduled} days completed
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               {/* Stats */}
@@ -360,18 +503,37 @@ export default function StudySchedulePage() {
                   </Button>
                 </div>
                 
-                {/* Auto-adjust button */}
+                {/* Auto-adjust button with tooltip */}
                 {schedule.is_active && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => adjustMutation.mutate(schedule.id)}
-                    disabled={adjustMutation.isPending}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${adjustMutation.isPending ? 'animate-spin' : ''}`} />
-                    Auto-Adjust Schedule
-                  </Button>
+                  <div className="relative group">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => adjustMutation.mutate(schedule.id)}
+                      disabled={adjustMutation.isPending}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${adjustMutation.isPending ? 'animate-spin' : ''}`} />
+                      Auto-Adjust Schedule
+                    </Button>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 left-0 hidden group-hover:block z-10">
+                      <div className="bg-gray-900 text-white text-xs rounded py-2 px-3 w-64 shadow-lg">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold mb-1">AI Schedule Adjustment</p>
+                            <p className="text-gray-300">
+                              Analyzes your performance and automatically adjusts your schedule to keep you on track 🤖
+                            </p>
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 left-4 transform translate-y-full">
+                          <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Adjustment info */}
@@ -389,17 +551,79 @@ export default function StudySchedulePage() {
         ))}
       </div>
 
+      {/* Improved Empty State - Priority 1 */}
       {schedules.length === 0 && (
-        <Card className="text-center py-12">
+        <Card className="text-center py-16 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-dashed border-indigo-200">
           <CardContent>
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No schedules yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create your first study schedule to start tracking your learning journey
+            {/* Illustration */}
+            <div className="mb-6">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-indigo-100 rounded-full mb-4">
+                <Calendar className="w-12 h-12 text-indigo-600" />
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Let's Create Your First Schedule! 🎯
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Tell us your goal and we'll create a personalized study plan that adapts to your pace
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Schedule
+
+            {/* Quick Start Templates */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
+              <button
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    schedule_name: 'IELTS 6.5 Preparation',
+                    schedule_type: 'exam_prep',
+                    schedule_config: {
+                      ...formData.schedule_config!,
+                      daily_minutes: 45,
+                      days_per_week: 6
+                    }
+                  })
+                  setIsCreateDialogOpen(true)
+                }}
+                className="p-4 border-2 border-dashed rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left"
+              >
+                <Target className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+                <div className="font-semibold">IELTS 6.5</div>
+                <div className="text-sm text-gray-500">3 months intensive</div>
+              </button>
+              <button
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    schedule_name: 'Daily Practice',
+                    schedule_type: 'time_based',
+                    schedule_config: {
+                      ...formData.schedule_config!,
+                      daily_minutes: 30,
+                      days_per_week: 5
+                    }
+                  })
+                  setIsCreateDialogOpen(true)
+                }}
+                className="p-4 border-2 border-dashed rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left"
+              >
+                <Clock className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+                <div className="font-semibold">30 min/day</div>
+                <div className="text-sm text-gray-500">Flexible schedule</div>
+              </button>
+              <button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="p-4 border-2 border-dashed rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left"
+              >
+                <Settings className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+                <div className="font-semibold">Custom</div>
+                <div className="text-sm text-gray-500">Advanced options</div>
+              </button>
+            </div>
+
+            <Button size="lg" onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-5 h-5 mr-2" />
+              Create My Schedule
             </Button>
           </CardContent>
         </Card>

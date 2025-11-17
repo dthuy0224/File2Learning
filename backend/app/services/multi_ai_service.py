@@ -179,6 +179,68 @@ class MultiAIService:
             "flashcards": []
         }
 
+    async def generate_key_vocabulary(
+        self,
+        text_content: str,
+        num_terms: int = 8,
+        preferred_provider: Optional[AIProvider] = None
+    ) -> Dict:
+        """
+        Generate key vocabulary list (term, definition, example) using AI
+        """
+        max_length = 4000
+        if len(text_content) > max_length:
+            text_content = text_content[:max_length] + "..."
+
+        prompt = f"""Identify the {num_terms} most important vocabulary words or phrases from the following passage.
+Return ONLY a valid JSON array (no markdown, backticks, or extra commentary). Each item MUST have:
+  - "term": the vocabulary word/phrase
+  - "definition": an easy-to-understand explanation (English)
+  - "example": a short sentence showing how it is used (real or adapted from the passage)
+
+If fewer than {num_terms} strong words exist, return as many as possible.
+
+Passage:
+{text_content}
+
+JSON:
+"""
+
+        providers = self._get_provider_order(preferred_provider)
+
+        for provider in providers:
+            try:
+                logger.info(f"🤖 Attempting key vocabulary extraction with {provider.value}")
+
+                if provider == AIProvider.GEMINI and self.gemini_client:
+                    result = await self._generate_with_gemini(prompt)
+                elif provider == AIProvider.GROQ and self.groq_client:
+                    result = await self._generate_with_groq(prompt)
+                else:
+                    continue
+
+                if result:
+                    vocab_list = self._parse_key_vocabulary_response(result)
+                    if vocab_list:
+                        self.provider_stats[provider.value]["success"] += 1
+                        return {
+                            "success": True,
+                            "key_vocabulary": vocab_list,
+                            "ai_provider": provider.value,
+                            "ai_model": self._get_model_name(provider)
+                        }
+
+            except Exception as e:
+                logger.error(f"❌ {provider.value} failed (key vocabulary): {str(e)}")
+                self.provider_stats[provider.value]["failures"] += 1
+                continue
+
+        return {
+            "success": False,
+            "error": "All AI providers unavailable",
+            "key_vocabulary": []
+        }
+
     async def generate_summary(
         self, 
         text_content: str, 
@@ -491,6 +553,38 @@ Document:
             logger.error(f"Error parsing flashcard response: {str(e)}")
         
         return flashcards
+
+    def _parse_key_vocabulary_response(self, response: str) -> List[Dict]:
+        """Parse AI response (expected JSON array) into vocabulary data"""
+        if not response:
+            return []
+
+        cleaned = response.strip()
+        start = cleaned.find("[")
+        end = cleaned.rfind("]")
+
+        if start != -1 and end != -1 and end > start:
+            cleaned = cleaned[start:end + 1]
+
+        try:
+            data = json.loads(cleaned)
+            vocab_list = []
+            for item in data:
+                term = item.get("term") or item.get("word")
+                definition = item.get("definition") or item.get("meaning")
+                example = item.get("example") or item.get("context") or ""
+
+                if term and definition:
+                    vocab_list.append({
+                        "term": term.strip(),
+                        "definition": definition.strip(),
+                        "example": example.strip() if example else ""
+                    })
+
+            return vocab_list
+        except Exception as e:
+            logger.error(f"Error parsing key vocabulary response: {str(e)}")
+            return []
 
     def _generate_fallback_quiz(self, text: str, quiz_type: str, num_questions: int) -> List[Dict]:
         """Generate simple fallback quiz when all AI providers fail"""

@@ -178,7 +178,8 @@ def get_document_content(
         "content": document_obj.content,
         "word_count": document_obj.word_count,
         "document_type": document_obj.document_type,
-        "created_at": document_obj.created_at
+        "created_at": document_obj.created_at,
+        "key_vocabulary": document_obj.key_vocabulary
     }
 
 
@@ -304,7 +305,8 @@ def get_document_status(
         "processed_at": document_obj.processed_at,
         "processing_error": document_obj.processing_error,
         "title": document_obj.title,
-        "progress": progress_info
+        "progress": progress_info,
+        "key_vocabulary": document_obj.key_vocabulary
     }
 
 
@@ -353,7 +355,8 @@ def get_documents_status_batch(
                 "created_at": document_obj.created_at,
                 "processed_at": document_obj.processed_at,
                 "processing_error": document_obj.processing_error,
-                "progress": progress_info
+                "progress": progress_info,
+                "key_vocabulary": document_obj.key_vocabulary
             }
         except Exception as e:
             results[str(doc_id)] = {"error": str(e)}
