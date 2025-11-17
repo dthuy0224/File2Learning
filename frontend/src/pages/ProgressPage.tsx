@@ -231,7 +231,7 @@ const ProgressPage = () => {
                     showWeekdayLabels={true}
                     transformDayElement={(element: any, value: any, index: number) => (
                       <div
-                        key={index}
+                        key={value?.date || `heatmap-${index}`}
                         className={`
                           ${value && value.count > 0 ? 'cursor-pointer hover:scale-110 transition-transform' : ''}
                           tooltip
@@ -332,7 +332,7 @@ const ProgressPage = () => {
                 <Tooltip formatter={(value: number) => [`${value}%`, 'Accuracy']} />
                 <Bar dataKey="accuracy" radius={[4, 4, 0, 0]}>
                   {skillChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${entry.level}-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -364,12 +364,12 @@ const ProgressPage = () => {
             </div>
           ) : recentActivities && recentActivities.length > 0 ? (
             <div className="space-y-4">
-              {recentActivities.map((activity) => {
+              {recentActivities.map((activity, index) => {
                 const IconComponent = activity.type === 'quiz' ? Target :
                                     activity.type === 'flashcard' ? BrainCircuit : Activity
                 return (
                   <div
-                    key={activity.id}
+                    key={`activity-${activity.id}-${activity.type}-${activity.created_at}-${index}`}
                     className="flex items-center space-x-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
                   >
                     <div className={`p-2 rounded-full ${

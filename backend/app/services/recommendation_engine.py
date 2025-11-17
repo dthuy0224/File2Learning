@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from collections import Counter
 
 from app.models.recommendation import RecommendationType, RecommendationPriority
@@ -136,8 +136,8 @@ class RecommendationEngine:
             if not attempt.quiz:
                 continue
             
-            topic = attempt.quiz.topic or "General"
-            score_pct = (attempt.score / attempt.quiz.total_points * 100) if attempt.quiz.total_points > 0 else 0
+            topic = attempt.quiz.quiz_type or "General"
+            score_pct = (attempt.score / attempt.max_score * 100) if attempt.max_score > 0 else 0
             
             if topic not in topic_performance:
                 topic_performance[topic] = []
@@ -183,8 +183,8 @@ class RecommendationEngine:
         
         studied_topics = set()
         for session in recent_sessions:
-            if session.topic:
-                studied_topics.add(session.topic)
+            if session.primary_topic:
+                studied_topics.add(session.primary_topic)
         
         if not studied_topics:
             # Fallback: recommend any available quiz
@@ -239,11 +239,12 @@ class RecommendationEngine:
         
         # Recommend documents for weak topics
         for doc in documents[:2]:
-            doc_type = doc.file_type or "document"
+            doc_type = doc.document_type or "document"
+            doc_title = doc.title or doc.original_filename
             recommendations.append(RecommendationCreate(
                 type=RecommendationType.READ_DOCUMENT,
                 priority=RecommendationPriority.LOW,
-                title=f"Review: {doc.name}",
+                title=f"Review: {doc_title}",
                 description=f"Revisit this {doc_type} to strengthen your understanding of key concepts.",
                 reason="Regular review of learning materials helps with long-term retention.",
                 target_resource_type="document",
@@ -251,7 +252,7 @@ class RecommendationEngine:
                 relevance_score=0.65,
                 confidence_score=0.7,
                 expected_impact=0.7,
-                extra_data={"document_id": doc.id, "document_name": doc.name},
+                extra_data={"document_id": doc.id, "document_title": doc_title},
                 expires_at=datetime.utcnow() + timedelta(days=14)
             ))
         
@@ -268,7 +269,8 @@ class RecommendationEngine:
         ).all()
         
         for goal in active_goals[:2]:
-            if goal.target_date and goal.target_date < datetime.utcnow():
+            today = date.today()
+            if goal.target_date and goal.target_date < today:
                 # Goal is overdue
                 priority = RecommendationPriority.HIGH
                 title_prefix = "Urgent:"
@@ -276,12 +278,18 @@ class RecommendationEngine:
                 priority = RecommendationPriority.MEDIUM
                 title_prefix = "Continue working on"
             
-            progress_pct = goal.progress_percentage or 0
+            # Extract progress percentage from current_progress JSON
+            progress_pct = 0.0
+            if goal.current_progress and isinstance(goal.current_progress, dict):
+                progress_pct = float(goal.current_progress.get('percentage', 0))
+            
+            # Convert date to datetime for expires_at
+            expires_at = datetime.combine(goal.target_date, datetime.min.time()) if goal.target_date else datetime.utcnow() + timedelta(days=7)
             
             recommendations.append(RecommendationCreate(
                 type=RecommendationType.STUDY_TOPIC,
                 priority=priority,
-                title=f"{title_prefix} {goal.title}",
+                title=f"{title_prefix} {goal.goal_title}",
                 description=f"You're {progress_pct:.0f}% towards your goal. Keep up the momentum!",
                 reason=f"This learning goal is part of your active objectives. Current progress: {progress_pct:.0f}%.",
                 target_resource_type="learning_goal",
@@ -290,7 +298,7 @@ class RecommendationEngine:
                 confidence_score=0.9,
                 expected_impact=0.85,
                 extra_data={"goal_id": goal.id, "progress": progress_pct},
-                expires_at=goal.target_date if goal.target_date else datetime.utcnow() + timedelta(days=7)
+                expires_at=expires_at
             ))
         
         return recommendations
@@ -339,8 +347,8 @@ class RecommendationEngine:
             if not attempt.quiz:
                 continue
             
-            topic = attempt.quiz.topic or "General"
-            score_pct = (attempt.score / attempt.quiz.total_points * 100) if attempt.quiz.total_points > 0 else 0
+            topic = attempt.quiz.quiz_type or "General"
+            score_pct = (attempt.score / attempt.max_score * 100) if attempt.max_score > 0 else 0
             
             if topic not in topic_performance:
                 topic_performance[topic] = []

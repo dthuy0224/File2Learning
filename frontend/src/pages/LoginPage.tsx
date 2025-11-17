@@ -23,13 +23,13 @@ export default function LoginPage() {
     mutationFn: authService.login,
     onSuccess: async (tokenData) => {
       try {
-        // ✅ Lấy user data sau khi login
+        // Get user data after login
         const userData = await authService.fetchUser()
 
         login(tokenData.access_token, userData)
         toast.success('Welcome back!')
         
-        // ✅ Kiểm tra nếu user chưa setup thì điều hướng
+        // Check if user hasn't setup then redirect
         if (userData.needs_setup) {
           navigate('/setup-learning');
         } else {
@@ -72,7 +72,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">AI Learning Material</span>
+            <span className="text-2xl font-bold text-gray-900">File2Learning</span>
           </Link>
         </div>
 

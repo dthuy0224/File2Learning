@@ -100,7 +100,7 @@ class OAuthService:
     def find_or_create_user(self, oauth_data: Dict[str, Any]) -> Tuple[User, bool]:
         """Find user by oauth_id, or create new one"""
 
-        # Google trả về "sub", GitHub/Microsoft trả về "id"
+        # Google returns "sub", GitHub/Microsoft return "id"
         oauth_id = str(oauth_data.get("id") or oauth_data.get("sub"))
         email = oauth_data.get("email")
 

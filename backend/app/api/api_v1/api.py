@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.api_v1.endpoints import (
     auth, users, documents, flashcards, quizzes, ai, flashcard_sets, analytics,
-    learning_goals, daily_plans, recommendations
+    learning_goals, daily_plans, recommendations, study_schedules
 )
 
 api_router = APIRouter()
@@ -21,3 +21,4 @@ api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 api_router.include_router(learning_goals.router, prefix="/goals", tags=["learning-goals"])
 api_router.include_router(daily_plans.router, prefix="/plans", tags=["daily-plans"])
 api_router.include_router(recommendations.router, prefix="/recommendations", tags=["recommendations"])
+api_router.include_router(study_schedules.router, prefix="/schedules", tags=["study-schedules"])

@@ -130,7 +130,7 @@ export default function ProfileOverviewFull() {
         })
       } catch (e: any) {
         console.error(e)
-        setError('Không tải được dữ liệu người dùng.')
+        setError('Failed to load user data.')
       } finally {
         setLoading(false)
       }
@@ -174,27 +174,27 @@ export default function ProfileOverviewFull() {
       const updated = await userService.updateProfile(payload)
       setUser(updated)
       setShowEditModal(false)
-      setMessage('Cập nhật hồ sơ thành công')
+      setMessage('Profile updated successfully')
     } catch (e: any) {
       console.error(e)
-      setError(e?.response?.data?.detail || 'Cập nhật thất bại')
+      setError(e?.response?.data?.detail || 'Update failed')
     }
   }
 
   async function handlePasswordChange(e?: React.FormEvent) {
     if (e) e.preventDefault()
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      setError('Mật khẩu mới và xác nhận không khớp')
+      setError('New password and confirmation do not match')
       return
     }
     try {
       await userService.changePassword(passwordForm.old_password, passwordForm.new_password)
       setShowPasswordModal(false)
       setPasswordForm({ old_password: '', new_password: '', confirm_password: '' })
-      setMessage('Đổi mật khẩu thành công')
+      setMessage('Password changed successfully')
     } catch (e: any) {
       console.error(e)
-      setError(e?.response?.data?.detail || 'Đổi mật khẩu thất bại')
+      setError(e?.response?.data?.detail || 'Password change failed')
     }
   }
 
@@ -205,26 +205,26 @@ export default function ProfileOverviewFull() {
 
   async function handleUploadAvatar(file: File) {
   if (!file) {
-    toast.error('Chưa chọn file')
+    toast.error('No file selected')
     return
   }
 
   try {
     const updatedUser = await userService.uploadAvatar(file)
 
-    // ✅ Cập nhật Zustand ngay sau upload
+    // Update Zustand immediately after upload
     const { updateUser } = useAuthStore.getState()
     updateUser(updatedUser)
 
-    // ✅ Hiển thị thông báo và đóng modal
-    toast.success('Tải avatar thành công!')
-    setMessage('Tải avatar thành công')
+    // Show notification and close modal
+    toast.success('Avatar uploaded successfully!')
+    setMessage('Avatar uploaded successfully')
     setShowUploadModal(false)
     setAvatarFile(null)
   } catch (err: any) {
     console.error('❌ Upload avatar failed:', err)
-    toast.error(err?.response?.data?.detail || 'Upload thất bại')
-    setError(err?.response?.data?.detail || 'Upload thất bại')
+    toast.error(err?.response?.data?.detail || 'Upload failed')
+    setError(err?.response?.data?.detail || 'Upload failed')
   }
 }
 
@@ -649,8 +649,8 @@ export default function ProfileOverviewFull() {
     gap: 8,
     paddingBottom: 6,
     marginBottom: 16,
-    borderBottom: "2px solid #2563eb", // gạch bên dưới chữ
-    width: "fit-content", // gạch chỉ dài bằng chữ
+    borderBottom: "2px solid #2563eb", // underline
+    width: "fit-content", // underline only as wide as text
   }}
 >
   <svg
@@ -667,7 +667,7 @@ export default function ProfileOverviewFull() {
     style={{
       fontSize: 15,
       fontWeight: 600,
-      color: "#1e3a8a", // xanh đậm để nổi bật
+      color: "#1e3a8a", // dark blue for emphasis
       margin: 0,
     }}
   >

@@ -7,13 +7,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 def send_email(subject: str, to: str, body: str) -> None:
-    # 🔹 Giai đoạn test: chỉ in ra console thay vì gửi mail thật
+    # Testing phase: only print to console instead of sending real email
     print(f"📨 Simulating email to {to}")
     print(f"Subject: {subject}")
     print(f"Body: {body}")
     return
 
-    # 🔹 Sau khi test xong, bỏ "return" trên để kích hoạt phần bên dưới
+    # After testing, remove the "return" above to activate the code below
     try:
         msg = EmailMessage()
         msg["Subject"] = subject

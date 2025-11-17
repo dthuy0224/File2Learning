@@ -5,6 +5,7 @@ from sqlalchemy import and_
 
 from app.models.study_schedule import DailyStudyPlan
 from app.schemas.daily_plan import DailyStudyPlanCreate, DailyStudyPlanUpdate
+from app.crud.crud_recommendation import crud_recommendation
 
 
 def get_plan(db: Session, plan_id: int, user_id: int) -> Optional[DailyStudyPlan]:
@@ -66,6 +67,7 @@ def create_plan(db: Session, plan: DailyStudyPlanCreate, user_id: int) -> DailyS
         total_tasks_count=len(plan.recommended_tasks),
         priority_level=plan.priority_level,
         difficulty_level=plan.difficulty_level,
+        source_recommendation_ids=plan.source_recommendation_ids,  # NEW!
         status='pending',
         is_completed=False,
         completion_percentage=0.0,
@@ -75,6 +77,17 @@ def create_plan(db: Session, plan: DailyStudyPlanCreate, user_id: int) -> DailyS
     db.add(db_plan)
     db.commit()
     db.refresh(db_plan)
+    
+    # Mark recommendations as included in plan (NEW!)
+    if plan.source_recommendation_ids:
+        for rec_id in plan.source_recommendation_ids:
+            crud_recommendation.mark_included_in_plan(
+                db,
+                recommendation_id=rec_id,
+                plan_id=db_plan.id,
+                plan_date=plan.plan_date.isoformat()
+            )
+    
     return db_plan
 
 
