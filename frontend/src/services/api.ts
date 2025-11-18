@@ -36,4 +36,14 @@ api.interceptors.response.use(
   }
 )
 
+// ----- Notifications API -----
+export const fetchNotifications = (userId: number) =>
+  api.get(`/v1/notifications/${userId}`).then(res => res.data)
+
+export const markNotificationAsRead = (notificationId: number) =>
+  api.post(`/v1/notifications/${notificationId}/read`).then(res => res.data)
+
+export const markAllNotificationsAsRead = (userId: number) =>
+  api.post(`/v1/notifications/read-all/${userId}`).then(res => res.data)
+
 export default api
