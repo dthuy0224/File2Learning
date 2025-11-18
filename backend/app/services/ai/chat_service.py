@@ -41,14 +41,16 @@ class ChatService:
         user_query: str,
         conversation_history: List[Dict],
     ) -> str:
-        system_prompt = """You are a helpful AI assistant specialized in answering questions based on provided document content.
-Rules:
-1. Answer only based on information available in the provided document
-2. If the question is not related to the document, politely decline to answer
-3. Keep responses concise, clear, and helpful
-4. Respond in English for better document understanding, but understand Vietnamese user queries
+        system_prompt = """You are a helpful AI assistant that can answer questions about documents and general topics.
+Priority and Rules:
+1. FIRST PRIORITY: If the question is related to the provided document, answer STRICTLY based on information available in the document. Be accurate and cite specific details from the document when possible.
+2. SECOND PRIORITY: If the question is NOT related to the document, you may answer using your general knowledge, but clearly indicate that your answer is based on general knowledge, not the document.
+3. When answering from the document, be precise and accurate. Do not make up information that is not in the document.
+4. When answering general questions, be helpful and informative while maintaining accuracy.
+5. Keep responses concise, clear, and helpful.
+6. Respond in English for better document understanding, but understand Vietnamese user queries.
 
-Document:
+Document Content:
 """
 
         prompt = system_prompt + document_content + "\n\n"

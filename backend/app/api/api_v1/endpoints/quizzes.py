@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Dict
 import random
 from datetime import datetime
 
@@ -11,8 +11,25 @@ from app.crud import quiz, flashcard
 from app.tasks.learning_tasks import process_learning_event_task
 from app.schemas.quiz import Quiz, QuizCreate, QuizUpdate, QuizAttempt, QuizAttemptCreate, QuizAttemptSubmit, QuizQuestionCreate
 from app.schemas.user import User
+from app.models.quiz import QuizQuestion
 
 router = APIRouter()
+
+
+def _resolve_correct_answer_text(question: QuizQuestion, stored_answer: str) -> str:
+    """
+    Convert stored answer (which might be a letter) into human-readable text.
+    """
+    if not question.options:
+        return stored_answer or question.correct_answer
+
+    answer_value = stored_answer or question.correct_answer or ""
+    answer_value = answer_value.strip()
+    if len(answer_value) == 1 and answer_value.upper() in ["A", "B", "C", "D"]:
+        index = ord(answer_value.upper()) - ord("A")
+        if 0 <= index < len(question.options):
+            return question.options[index]
+    return answer_value or question.correct_answer
 
 
 @router.get("/", response_model=List[Quiz])
@@ -262,9 +279,9 @@ def submit_quiz_attempt(
 
             
     attempt_obj.answers = answers_dict
-    attempt_obj.score = correct_answers * (100 // len(questions)) if questions else 0  # Score out of 100
-    attempt_obj.max_score = 100
-    attempt_obj.percentage = percentage
+    attempt_obj.score = sum(answer_data.get("points", 1) for answer_data in answers_dict.values() if answer_data.get("is_correct", False))
+    attempt_obj.max_score = sum(question.points for question in questions)
+    attempt_obj.percentage = int((attempt_obj.score / attempt_obj.max_score) * 100) if attempt_obj.max_score > 0 else 0
     attempt_obj.time_taken = submission.total_time
     attempt_obj.is_completed = True
     attempt_obj.completed_at = datetime.utcnow()
@@ -326,16 +343,51 @@ def read_quiz_attempt_by_id(
     from app.models.quiz import QuizAttempt as QuizAttemptModel
     from sqlalchemy.orm import joinedload
 
-    attempt_obj = db.query(QuizAttemptModel)\
-        .options(joinedload(QuizAttemptModel.quiz))\
-        .filter(QuizAttemptModel.id == attempt_id)\
+    attempt_obj = (
+        db.query(QuizAttemptModel)
+        .options(joinedload(QuizAttemptModel.quiz))
+        .filter(QuizAttemptModel.id == attempt_id)
         .first()
+    )
 
     if not attempt_obj:
         raise HTTPException(status_code=404, detail="Quiz attempt not found")
 
     if attempt_obj.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    if attempt_obj.answers:
+        question_ids = [int(qid) for qid in attempt_obj.answers.keys() if qid.isdigit()]
+        if question_ids:
+            question_objs = (
+                db.query(QuizQuestion)
+                .filter(QuizQuestion.id.in_(question_ids))
+                .all()
+            )
+            question_map: Dict[str, QuizQuestion] = {str(q.id): q for q in question_objs}
+            enriched_answers = {}
+
+            for question_id, answer_data in attempt_obj.answers.items():
+                question = question_map.get(question_id)
+                if not question:
+                    enriched_answers[question_id] = answer_data
+                    continue
+
+                enriched_entry = dict(answer_data or {})
+                enriched_entry.setdefault("question_text", question.question_text)
+                enriched_entry.setdefault("explanation", question.explanation)
+                enriched_entry.setdefault("points", question.points)
+                if question.options:
+                    enriched_entry.setdefault("options", question.options)
+
+                stored_correct = enriched_entry.get("correct_answer") or question.correct_answer
+                enriched_entry["correct_answer"] = _resolve_correct_answer_text(
+                    question, stored_correct
+                )
+
+                enriched_answers[question_id] = enriched_entry
+
+            attempt_obj.answers = enriched_answers
 
     return attempt_obj
 
