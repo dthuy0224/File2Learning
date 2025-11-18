@@ -23,7 +23,8 @@ from app.models.quiz import Quiz, QuizQuestion, QuizAttempt
 from app.models.learning_profile import LearningProfile
 from app.models.learning_goal import LearningGoal
 from app.models.study_schedule import StudySchedule, DailyStudyPlan
-from app.models.study_session import StudySession
+from app.models.study_session import StudySession, LearningAnalytics
+from app.models.recommendation import AdaptiveRecommendation
 
 
 def create_sample_users(db: Session) -> list[User]:
@@ -551,7 +552,7 @@ def create_sample_flashcards(db: Session, users: list[User], documents: list[Doc
     """Create sample flashcards"""
     import random
     
-    # Business vocabulary flashcards
+        # Business vocabulary flashcards
     business_vocab = [
         ("stakeholder", "A person with an interest or concern in something, especially a business", "All stakeholders should be informed about the new policy changes.", "/ˈsteɪkˌhoʊldər/"),
         ("ROI", "Return on Investment - a measure of the efficiency of an investment", "The marketing campaign showed a positive ROI of 150%.", None),
@@ -965,15 +966,15 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                 
                 goals_data.append({
                     "user_id": user.id,
-                    "goal_type": "exam_preparation",
+            "goal_type": "exam_preparation",
                     "goal_title": f"{exam_type} {score}" if isinstance(score, float) else f"{exam_type} {score}",
                     "description": f"Prepare for {exam_type} exam and achieve score of {score}",
-                    "target_metrics": {
+            "target_metrics": {
                         "exam": exam_type,
                         "target_score": score,
                         "sections": ["reading", "writing", "listening", "speaking"] if exam_type == "IELTS" else ["listening", "reading"]
-                    },
-                    "current_progress": {
+            },
+            "current_progress": {
                         "vocabulary": current_progress_val,
                         "percentage": float(percentage),
                         "on_track": percentage >= 30,
@@ -981,7 +982,7 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                     },
                     "start_date": today - timedelta(days=days_started),
                     "target_date": today + timedelta(days=days_remaining),
-                    "status": "active",
+            "status": "active",
                     "priority": random.choice(["high", "medium", "high"]),
                     "is_on_track": percentage >= 30,
                     "completion_percentage": percentage
@@ -994,11 +995,11 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                 
                 goals_data.append({
                     "user_id": user.id,
-                    "goal_type": "vocabulary_count",
+            "goal_type": "vocabulary_count",
                     "goal_title": f"Learn {count} Words",
                     "description": f"Master {count} essential English vocabulary words",
                     "target_metrics": {"vocabulary": count, "unit": "words"},
-                    "current_progress": {
+            "current_progress": {
                         "vocabulary": current,
                         "percentage": float(percentage),
                         "on_track": percentage >= 25,
@@ -1006,7 +1007,7 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                     },
                     "start_date": today - timedelta(days=days_started),
                     "target_date": today + timedelta(days=days_remaining),
-                    "status": "active",
+            "status": "active",
                     "priority": random.choice(["medium", "high", "medium"]),
                     "is_on_track": percentage >= 25,
                     "completion_percentage": percentage
@@ -1019,11 +1020,11 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                 
                 goals_data.append({
                     "user_id": user.id,
-                    "goal_type": "time_based",
+            "goal_type": "time_based",
                     "goal_title": f"Study {hours} Hours",
                     "description": f"Complete {hours} hours of study time",
                     "target_metrics": {"study_time": hours, "unit": "hours"},
-                    "current_progress": {
+            "current_progress": {
                         "study_time": current_hours,
                         "percentage": float(percentage),
                         "on_track": percentage >= 30,
@@ -1031,7 +1032,7 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                     },
                     "start_date": today - timedelta(days=days_started),
                     "target_date": today + timedelta(days=days_remaining),
-                    "status": "active",
+            "status": "active",
                     "priority": random.choice(["medium", "low", "medium"]),
                     "is_on_track": percentage >= 30,
                     "completion_percentage": percentage
@@ -1045,11 +1046,11 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                 
                 goals_data.append({
                     "user_id": user.id,
-                    "goal_type": "topic_mastery",
+            "goal_type": "topic_mastery",
                     "goal_title": f"Master {topic}",
                     "description": f"Achieve {target_acc}% accuracy in {topic} topics",
                     "target_metrics": {"topic": topic, "target_accuracy": target_acc},
-                    "current_progress": {
+            "current_progress": {
                         "accuracy": current_acc,
                         "percentage": float(percentage),
                         "on_track": percentage >= 70,
@@ -1057,7 +1058,7 @@ def create_sample_learning_goals(db: Session, users: list[User]) -> list[Learnin
                     },
                     "start_date": today - timedelta(days=days_started),
                     "target_date": today + timedelta(days=days_remaining),
-                    "status": "active",
+            "status": "active",
                     "priority": random.choice(["high", "medium", "high"]),
                     "is_on_track": percentage >= 70,
                     "completion_percentage": percentage
@@ -1150,7 +1151,7 @@ def create_sample_study_schedules(db: Session, users: list[User], goals: list[Le
                 "goal_id": goal.id if goal else None,
                 "schedule_name": sched_name if sched_idx == 0 else f"{sched_name} {sched_idx + 1}",
                 "schedule_type": sched_type,
-                "schedule_config": {
+            "schedule_config": {
                     "daily_minutes": daily_minutes,
                     "days_per_week": days_per_week,
                     "preferred_times": preferred_times,
@@ -1221,12 +1222,12 @@ def create_sample_daily_plans(db: Session, users: list[User], schedules: list[St
                     count = random.randint(10, 25)
                     minutes = random.randint(8, 15)
                     tasks.append({
-                        "type": "flashcard_review",
+                    "type": "flashcard_review",
                         "entity_ids": list(range(1, count + 1)),
                         "count": count,
                         "estimated_minutes": minutes,
                         "priority": random.choice(["high", "medium"]),
-                        "reason": "Due for review (SRS)",
+                    "reason": "Due for review (SRS)",
                         "topic": random.choice(["Grammar", "Vocabulary", "Business English"])
                     })
                     total_minutes += minutes
@@ -1234,7 +1235,7 @@ def create_sample_daily_plans(db: Session, users: list[User], schedules: list[St
                 elif task_type == "quiz":
                     minutes = random.randint(10, 20)
                     tasks.append({
-                        "type": "quiz",
+                    "type": "quiz",
                         "entity_id": random.randint(1, 5),
                         "quiz_title": random.choice(["Business Vocabulary", "IELTS Practice", "Grammar Quiz"]),
                         "estimated_minutes": minutes,
@@ -1249,7 +1250,7 @@ def create_sample_daily_plans(db: Session, users: list[User], schedules: list[St
                         "type": "reading",
                         "entity_id": random.randint(1, 20),
                         "estimated_minutes": minutes,
-                        "priority": "medium",
+                    "priority": "medium",
                         "reason": "Improve reading comprehension"
                     })
                     total_minutes += minutes
@@ -1306,8 +1307,8 @@ def create_sample_daily_plans(db: Session, users: list[User], schedules: list[St
                 actual_performance=actual_performance,
                 started_at=started_at,
                 completed_at=completed_at
-            )
-            db.add(plan)
+        )
+        db.add(plan)
     
     db.commit()
 
@@ -1360,13 +1361,13 @@ def create_sample_study_sessions(db: Session, users: list[User], daily_plans: li
                 sessions_data.append({
                     "user_id": user.id,
                     "daily_plan_id": plan.id if plan else None,
-                    "session_type": "flashcard_review",
-                    "entity_type": "flashcard",
+            "session_type": "flashcard_review",
+            "entity_type": "flashcard",
                     "entity_id": random.randint(1, 100),
                     "duration_seconds": duration_seconds,
                     "started_at": started_at,
                     "ended_at": ended_at,
-                    "performance_data": {
+            "performance_data": {
                         "cards_reviewed": cards_reviewed,
                         "correct": correct,
                         "incorrect": cards_reviewed - correct,
@@ -1390,13 +1391,13 @@ def create_sample_study_sessions(db: Session, users: list[User], daily_plans: li
                 sessions_data.append({
                     "user_id": user.id,
                     "daily_plan_id": plan.id if plan else None,
-                    "session_type": "quiz_taking",
-                    "entity_type": "quiz",
+            "session_type": "quiz_taking",
+            "entity_type": "quiz",
                     "entity_id": random.randint(1, 10),
                     "duration_seconds": duration_seconds,
                     "started_at": started_at,
                     "ended_at": ended_at,
-                    "performance_data": {
+            "performance_data": {
                         "quiz_id": random.randint(1, 10),
                         "score": correct * 10,
                         "max_score": questions * 10,
@@ -1461,23 +1462,23 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
             "document_id": documents[0].id if len(documents) > 0 else None,
             "created_by": users[2].id if len(users) > 2 else users[0].id,
             "questions": [
-                {
-                    "question_text": "What does ROI stand for?",
-                    "question_type": "multiple_choice",
-                    "options": ["Return on Investment", "Rate of Interest", "Revenue of Income", "Risk of Investment"],
-                    "correct_answer": "Return on Investment",
-                    "explanation": "ROI (Return on Investment) measures the efficiency of an investment.",
-                    "difficulty_level": "medium",
-                    "points": 2,
-                },
-                {
-                    "question_text": "A _______ is someone who has an interest in a business or project.",
-                    "question_type": "fill_blank",
-                    "correct_answer": "stakeholder",
-                    "blank_position": 2,
-                    "explanation": "A stakeholder is a person with an interest or concern in something, especially a business.",
-                    "difficulty_level": "medium",
-                    "points": 1,
+        {
+            "question_text": "What does ROI stand for?",
+            "question_type": "multiple_choice",
+            "options": ["Return on Investment", "Rate of Interest", "Revenue of Income", "Risk of Investment"],
+            "correct_answer": "Return on Investment",
+            "explanation": "ROI (Return on Investment) measures the efficiency of an investment.",
+            "difficulty_level": "medium",
+            "points": 2,
+        },
+        {
+            "question_text": "A _______ is someone who has an interest in a business or project.",
+            "question_type": "fill_blank",
+            "correct_answer": "stakeholder",
+            "blank_position": 2,
+            "explanation": "A stakeholder is a person with an interest or concern in something, especially a business.",
+            "difficulty_level": "medium",
+            "points": 1,
                 },
                 {
                     "question_text": "What does KPI stand for?",
@@ -1637,9 +1638,9 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
         for idx, q_data in enumerate(questions_data, 1):
             q_data["order_index"] = idx
             q_data["quiz_id"] = quiz.id
-            question = QuizQuestion(**q_data)
-            db.add(question)
-        
+        question = QuizQuestion(**q_data)
+        db.add(question)
+    
         all_quizzes.append(quiz)
     
     db.commit()
@@ -1679,7 +1680,7 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
                 max_score=max_score,
                 percentage=percentage,
                 time_taken=random.randint(180, 600),  # 3-10 minutes
-                is_completed=True,
+        is_completed=True,
                 completed_at=datetime.utcnow() - timedelta(hours=random.randint(1, 48)),
                 user_id=user.id,
                 quiz_id=quiz.id
@@ -1688,16 +1689,68 @@ def create_sample_quizzes(db: Session, users: list[User], documents: list[Docume
     
     db.commit()
 
-def seed_database():
+def seed_database(force=False):
     """Main seeding function"""
     print("Starting database seeding...")
     
     db = SessionLocal()
     try:
         # Check if data already exists
-        if db.query(User).count() > 0:
-            print("Database already contains data. Skipping seed.")
-            return
+        if not force:
+            try:
+                if db.query(User).count() > 0:
+                    print("Database already contains data. Skipping seed.")
+                    print("Use --force flag to force seed anyway (will create duplicate data).")
+                    return
+            except Exception:
+                # Table doesn't exist yet or other error - rollback and continue with seeding
+                db.rollback()
+                pass
+        else:
+            print("Force mode: Clearing existing data...")
+            # Delete in reverse dependency order (skip if tables don't exist)
+            try:
+                # Check if users table exists first
+                from sqlalchemy import inspect
+                inspector = inspect(db.bind)
+                tables = inspector.get_table_names()
+                
+                if "users" in tables:
+                    # Tables exist, proceed with deletion
+                    if "quiz_attempts" in tables:
+                        db.query(QuizAttempt).delete()
+                    if "quiz_questions" in tables:
+                        db.query(QuizQuestion).delete()
+                    if "quizzes" in tables:
+                        db.query(Quiz).delete()
+                    if "flashcards" in tables:
+                        db.query(Flashcard).delete()
+                    if "study_sessions" in tables:
+                        db.query(StudySession).delete()
+                    if "learning_analytics" in tables:
+                        db.query(LearningAnalytics).delete()
+                    if "adaptive_recommendations" in tables:
+                        db.query(AdaptiveRecommendation).delete()
+                    if "daily_study_plans" in tables:
+                        db.query(DailyStudyPlan).delete()
+                    if "study_schedules" in tables:
+                        db.query(StudySchedule).delete()
+                    if "learning_goals" in tables:
+                        db.query(LearningGoal).delete()
+                    if "learning_profiles" in tables:
+                        db.query(LearningProfile).delete()
+                    if "documents" in tables:
+                        db.query(Document).delete()
+                    if "users" in tables:
+                        db.query(User).delete()
+                    db.commit()
+                    print("Existing data cleared.")
+                else:
+                    print("Tables don't exist yet, skipping data deletion.")
+            except Exception as e:
+                print(f"Warning: Could not clear existing data: {e}")
+                db.rollback()
+                # Continue anyway - tables might not exist yet
 
         print("Creating sample users...")
         users = create_sample_users(db)
@@ -1777,4 +1830,11 @@ def seed_database():
 
 
 if __name__ == "__main__":
-    seed_database()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Seed database with sample data')
+    parser.add_argument('--force', action='store_true', 
+                       help='Force seed even if data already exists (will create duplicates)')
+    
+    args = parser.parse_args()
+    seed_database(force=args.force)
