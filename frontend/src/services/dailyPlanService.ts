@@ -72,8 +72,18 @@ class DailyPlanService {
    * ⭐ Get today's plan (most important!)
    * Auto-generates if not exists
    */
-  async getTodayPlan(): Promise<TodayPlanResponse> {
-    const response = await api.get<TodayPlanResponse>(`${this.baseUrl}/today`)
+  async getTodayPlan(forceRegenerate: boolean = false): Promise<TodayPlanResponse> {
+    const response = await api.get<TodayPlanResponse>(`${this.baseUrl}/today`, {
+      params: { force_regenerate: forceRegenerate }
+    })
+    return response.data
+  }
+
+  /**
+   * Regenerate today's plan (useful after accepting recommendations)
+   */
+  async regenerateTodayPlan(): Promise<TodayPlanResponse> {
+    const response = await api.post<TodayPlanResponse>(`${this.baseUrl}/today/regenerate`)
     return response.data
   }
 

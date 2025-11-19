@@ -19,12 +19,27 @@ router = APIRouter()
 def _resolve_correct_answer_text(question: QuizQuestion, stored_answer: str) -> str:
     """
     Convert stored answer (which might be a letter) into human-readable text.
+    For fill_blank questions, return the text directly (unless it's a letter and options exist - data error case).
+    For multiple_choice questions, convert letter (A, B, C, D) to option text if needed.
     """
-    if not question.options:
-        return stored_answer or question.correct_answer
-
     answer_value = stored_answer or question.correct_answer or ""
     answer_value = answer_value.strip()
+    
+    # For fill_blank questions, correct_answer should be text, not a letter
+    # But if it's a letter and options exist, it might be a data error - try to resolve
+    if question.question_type == "fill_blank" or question.question_type == "fill_in_the_blank":
+        # If it's a single letter and options exist, might be misclassified - try to resolve
+        if len(answer_value) == 1 and answer_value.upper() in ["A", "B", "C", "D"] and question.options:
+            index = ord(answer_value.upper()) - ord("A")
+            if 0 <= index < len(question.options):
+                return question.options[index]
+        # Otherwise, return as-is (should be text for fill_blank)
+        return answer_value or question.correct_answer
+    
+    # For multiple_choice or true_false, resolve letter to text if needed
+    if not question.options:
+        return answer_value or question.correct_answer
+
     if len(answer_value) == 1 and answer_value.upper() in ["A", "B", "C", "D"]:
         index = ord(answer_value.upper()) - ord("A")
         if 0 <= index < len(question.options):
@@ -247,10 +262,13 @@ def submit_quiz_attempt(
                 if user_option_text.strip().lower() == correct_answer.strip().lower():
                     is_correct = True
 
+        # Resolve correct_answer to human-readable text before storing
+        resolved_correct_answer = _resolve_correct_answer_text(question, correct_answer)
+        
         answers_dict[str(question_id)] = {
             "question_text": question.question_text,
             "user_answer": user_answer,
-            "correct_answer": correct_answer,
+            "correct_answer": resolved_correct_answer,
             "is_correct": is_correct,
             "explanation": question.explanation,
             "points": question.points

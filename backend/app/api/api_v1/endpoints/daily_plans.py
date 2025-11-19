@@ -20,8 +20,16 @@ def get_today_plan(
     *,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
+    force_regenerate: bool = False,
 ):
     today = date.today()
+    
+    # If force_regenerate, delete existing plan first
+    if force_regenerate:
+        existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
+        if existing_plan:
+            crud_daily_plan.delete_plan(db, plan_id=existing_plan.id, user_id=current_user.id)
+            logger.info(f"Deleted existing plan for user {current_user.id} to regenerate")
     
     # Check if plan already exists
     existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
@@ -52,6 +60,43 @@ def get_today_plan(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate plan: {str(e)}"
+        )
+
+
+@router.post("/today/regenerate", response_model=schemas.TodayPlanResponse)
+def regenerate_today_plan(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Force regenerate today's plan (useful after accepting recommendations)
+    """
+    today = date.today()
+    
+    # Delete existing plan if exists
+    existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
+    if existing_plan:
+        crud_daily_plan.delete_plan(db, plan_id=existing_plan.id, user_id=current_user.id)
+        logger.info(f"Deleted existing plan for user {current_user.id} to regenerate")
+    
+    # Generate new plan
+    logger.info(f"Regenerating plan for user {current_user.id}")
+    try:
+        plan_data = generate_daily_plan(db, user_id=current_user.id, plan_date=today)
+        new_plan = crud_daily_plan.create_plan(db, plan=plan_data, user_id=current_user.id)
+        
+        return schemas.TodayPlanResponse(
+            plan=new_plan,
+            has_plan=True,
+            is_new=True,
+            message="Plan regenerated with your accepted recommendations! 🎯"
+        )
+    except Exception as e:
+        logger.error(f"Error regenerating plan: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate plan: {str(e)}"
         )
 
 
