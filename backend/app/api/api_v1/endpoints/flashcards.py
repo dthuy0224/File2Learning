@@ -147,6 +147,29 @@ def review_flashcard(
     db.commit()
     db.refresh(flashcard_obj)
 
+    # Trigger adaptive learning updates asynchronously (feedback loop)
+    try:
+        from app.tasks.learning_tasks import process_learning_event_task
+        process_learning_event_task.delay(
+            user_id=current_user.id,
+            event_type="flashcard_reviewed",
+            payload={
+                "flashcard_id": flashcard_id,
+                "quality": quality,
+                "is_correct": quality >= 3,
+                "repetitions": flashcard_obj.repetitions,
+                "ease_factor": flashcard_obj.ease_factor,
+            },
+        )
+    except Exception as background_error:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Failed to enqueue learning event for flashcard %s (user %s): %s",
+            flashcard_id,
+            current_user.id,
+            background_error,
+        )
+
     return flashcard_obj
 
 

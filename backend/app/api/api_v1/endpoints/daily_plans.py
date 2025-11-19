@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core import deps
 from app.models.user import User
-from app.crud import crud_daily_plan
+from app.crud import crud_daily_plan, crud_learning_goal
 from app.schemas import daily_plan as schemas
 from app.services.plan_generator import generate_daily_plan
 import logging
@@ -15,20 +15,94 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _calculate_user_streak(db: Session, user_id: int, max_days: int = 30) -> int:
+    """Count consecutive days (up to max_days) where the user has an active/complete plan."""
+    streak = 0
+    for offset in range(max_days):
+        check_date = date.today() - timedelta(days=offset)
+        plan = crud_daily_plan.get_plan_by_date(db, user_id, check_date)
+        if plan and plan.status in ('completed', 'in_progress'):
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def _calculate_weekly_minutes(db: Session, user_id: int) -> int:
+    """Sum actual study minutes for the current calendar week."""
+    today = date.today()
+    start_of_week = today - timedelta(days=today.weekday())
+    plans = crud_daily_plan.get_plans(
+        db,
+        user_id,
+        start_date=start_of_week,
+        end_date=today
+    )
+    return sum((plan.actual_minutes_spent or 0) for plan in plans)
+
+
+def _get_goals_progress(db: Session, user_id: int, limit: int = 3) -> List[Dict[str, Any]]:
+    """Return a lightweight summary of active learning goals."""
+    goals = crud_learning_goal.get_active_goals(db, user_id)[:limit]
+    progress = []
+    for goal in goals:
+        progress.append({
+            "goal_id": goal.id,
+            "title": goal.goal_title,
+            "completion_percentage": int(goal.completion_percentage or 0),
+            "is_on_track": bool(goal.is_on_track),
+            "days_behind": goal.days_behind or 0,
+            "target_date": goal.target_date.isoformat() if goal.target_date else None,
+            "priority": goal.priority,
+        })
+    return progress
+
+
+def _build_today_plan_response(
+    db: Session,
+    user_id: int,
+    *,
+    plan,
+    has_plan: bool,
+    is_new: bool,
+    message: str,
+) -> schemas.TodayPlanResponse:
+    """Attach contextual fields (streak, weekly minutes, goals) to the today-plan response."""
+    return schemas.TodayPlanResponse(
+        plan=plan,
+        has_plan=has_plan,
+        is_new=is_new,
+        message=message,
+        user_streak=_calculate_user_streak(db, user_id),
+        total_study_time_this_week=_calculate_weekly_minutes(db, user_id),
+        goals_progress=_get_goals_progress(db, user_id)
+    )
+
+
 @router.get("/today", response_model=schemas.TodayPlanResponse)
 def get_today_plan(
     *,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
+    force_regenerate: bool = False,
 ):
     today = date.today()
+    
+    # If force_regenerate, delete existing plan first
+    if force_regenerate:
+        existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
+        if existing_plan:
+            crud_daily_plan.delete_plan(db, plan_id=existing_plan.id, user_id=current_user.id)
+            logger.info(f"Deleted existing plan for user {current_user.id} to regenerate")
     
     # Check if plan already exists
     existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
     
     if existing_plan:
         logger.info(f"Returning existing plan for user {current_user.id}")
-        return schemas.TodayPlanResponse(
+        return _build_today_plan_response(
+            db,
+            current_user.id,
             plan=existing_plan,
             has_plan=True,
             is_new=False,
@@ -41,7 +115,9 @@ def get_today_plan(
         plan_data = generate_daily_plan(db, user_id=current_user.id, plan_date=today)
         new_plan = crud_daily_plan.create_plan(db, plan=plan_data, user_id=current_user.id)
         
-        return schemas.TodayPlanResponse(
+        return _build_today_plan_response(
+            db,
+            current_user.id,
             plan=new_plan,
             has_plan=True,
             is_new=True,
@@ -52,6 +128,45 @@ def get_today_plan(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate plan: {str(e)}"
+        )
+
+
+@router.post("/today/regenerate", response_model=schemas.TodayPlanResponse)
+def regenerate_today_plan(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Force regenerate today's plan (useful after accepting recommendations)
+    """
+    today = date.today()
+    
+    # Delete existing plan if exists
+    existing_plan = crud_daily_plan.get_today_plan(db, user_id=current_user.id)
+    if existing_plan:
+        crud_daily_plan.delete_plan(db, plan_id=existing_plan.id, user_id=current_user.id)
+        logger.info(f"Deleted existing plan for user {current_user.id} to regenerate")
+    
+    # Generate new plan
+    logger.info(f"Regenerating plan for user {current_user.id}")
+    try:
+        plan_data = generate_daily_plan(db, user_id=current_user.id, plan_date=today)
+        new_plan = crud_daily_plan.create_plan(db, plan=plan_data, user_id=current_user.id)
+        
+        return _build_today_plan_response(
+            db,
+            current_user.id,
+            plan=new_plan,
+            has_plan=True,
+            is_new=True,
+            message="Plan regenerated with your accepted recommendations! 🎯"
+        )
+    except Exception as e:
+        logger.error(f"Error regenerating plan: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate plan: {str(e)}"
         )
 
 

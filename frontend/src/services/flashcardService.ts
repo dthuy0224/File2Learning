@@ -149,7 +149,9 @@ export class FlashcardService {
         }
       }
 
-      if (card.repetitions >= 8 && card.ease_factor > 2.5) {
+      // Match backend logic: ease_factor >= 2.0 AND repetitions >= 2
+      // This ensures consistency with Dashboard, Progress, and Analytics pages
+      if (card.ease_factor >= 2.0 && card.repetitions >= 2) {
         stats.mastered++
       } else if (card.repetitions > 0) {
         stats.learning++

@@ -352,11 +352,32 @@ export default function QuizTakingPage() {
           </div>
 
           {/* Answer Options */}
-          {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options ? (
+          {currentQuestion.question_type === 'multiple_choice' &&
+          currentQuestion.options &&
+          currentQuestion.options.length > 0 ? (
             <div className="space-y-3">
               {currentQuestion.options.map((option, optionIndex) => (
                 <label
                   key={optionIndex}
+                  className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                >
+                  <input
+                    type="radio"
+                    name={`question-${currentQuestion.id}`}
+                    value={option}
+                    checked={userAnswers[currentQuestion.id] === option}
+                    onChange={(e) => handleAnswerSelect(currentQuestion.id, e.target.value)}
+                    className="text-blue-600"
+                  />
+                  <span className="flex-1">{option}</span>
+                </label>
+              ))}
+            </div>
+          ) : currentQuestion.question_type === 'true_false' ? (
+            <div className="space-y-3">
+              {['True', 'False'].map((option) => (
+                <label
+                  key={option}
                   className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
                 >
                   <input

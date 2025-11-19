@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   BookOpen,
   Target,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import quizService from '../services/quizService'
@@ -206,6 +207,8 @@ export default function QuizResultPage() {
 
   const totalQuestions = Object.keys(attempt.answers || {}).length
   const correctAnswers = Object.values(attempt.answers || {}).filter(answer => answer.is_correct).length
+  const totalScore = Object.values(attempt.answers || {}).reduce((sum, answer) => sum + (answer.is_correct ? answer.points : 0), 0)
+  const maxScore = Object.values(attempt.answers || {}).reduce((sum, answer) => sum + answer.points, 0)
 
   // Show warning if no answers recorded
   if (totalQuestions === 0) {
@@ -252,6 +255,7 @@ export default function QuizResultPage() {
           </div>
           <CardDescription className="text-lg">
             {correctAnswers} out of {totalQuestions} questions correct
+            Score: {totalScore}/{maxScore} points
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-4">
@@ -275,7 +279,7 @@ export default function QuizResultPage() {
             </div>
             <div className="text-center">
               <div className={`text-2xl font-bold ${getScoreColor(attempt.percentage)}`}>
-                {attempt.score}/{attempt.max_score}
+                {totalScore}/{maxScore}
               </div>
               <div className="text-sm text-gray-600">Points</div>
             </div>
