@@ -29,7 +29,7 @@ import FlashcardSetDetailPage from './pages/FlashcardSetDetailPage'
 import LearningGoalsPage from './pages/LearningGoalsPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import StudySchedulePage from './pages/StudySchedulePage'
-
+import NotificationsPage from "./pages/NotificationsPage"
 // Components
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
