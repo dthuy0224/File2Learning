@@ -8,6 +8,7 @@ celery_app = Celery(
     backend=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     include=[
         "app.tasks.document_tasks",
+        "app.tasks.notification_tasks",
         "app.tasks.learning_tasks",
         "app.tasks.document_ai_tasks",
     ],
@@ -21,3 +22,10 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+celery_app.conf.beat_schedule = {
+    "auto-generate-notifs-every-minute": {
+        "task": "auto_generate_notifications",
+        "schedule": 60,
+    }
+}
