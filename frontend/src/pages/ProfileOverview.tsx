@@ -39,6 +39,7 @@ interface UserProfile {
   difficulty_preference?: string
   created_at?: string
   oauth_avatar?: string
+  avatar_url?: string
   oauth_provider?: string
   is_oauth_account?: boolean
   token?: string
@@ -307,8 +308,8 @@ export default function ProfileOverviewFull() {
 
       <div className="profile-card">
         <div className="avatar" aria-hidden>
-          {user.oauth_avatar ? (
-            <img src={user.oauth_avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
+          {(user.avatar_url || user.oauth_avatar) ? (
+            <img src={user.avatar_url || user.oauth_avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
           ) : (
             <span>{displayInitials}</span>
           )}

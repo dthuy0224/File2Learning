@@ -52,6 +52,10 @@ def _normalize_learning_goals(raw_goals) -> list[str]:
 def _user_to_user_out(user: UserModel) -> UserOut:
     """Convert ORM user instance to UserOut schema safely."""
     learning_goals = _normalize_learning_goals(getattr(user, "legacy_learning_goals", None))
+    
+    avatar_url = user.oauth_avatar
+    if not avatar_url and hasattr(user, "avatar") and user.avatar:
+        avatar_url = f"http://localhost:8000/static/avatars/{user.avatar}"
 
     user_out = UserOut(
         id=user.id,
@@ -63,7 +67,7 @@ def _user_to_user_out(user: UserModel) -> UserOut:
         daily_study_time=user.daily_study_time,
         created_at=user.created_at,
         oauth_avatar=user.oauth_avatar,
-        avatar_url=getattr(user, "avatar_url", None),
+        avatar_url=avatar_url,
     )
 
     user_out.needs_setup = not (
@@ -160,18 +164,20 @@ def upload_avatar(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    current_user.avatar = filename
+    # Lưu avatar URL vào oauth_avatar field (hoặc có thể tạo field avatar riêng)
+    avatar_url = f"http://localhost:8000/static/avatars/{filename}"
+    current_user.oauth_avatar = avatar_url
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
 
-    avatar_url = f"http://localhost:8000/static/avatars/{filename}"
     return {
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
         "full_name": current_user.full_name,
         "avatar_url": avatar_url,
+        "oauth_avatar": avatar_url,  # Đảm bảo cả hai field đều có
         "learning_goals": current_user.legacy_learning_goals,
         "difficulty_preference": current_user.difficulty_preference,
         "daily_study_time": current_user.daily_study_time,

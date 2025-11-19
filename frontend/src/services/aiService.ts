@@ -224,7 +224,7 @@ export class AIService {
   ): Promise<ChatResponse> {
     const response = await api.post(`/ai/${documentId}/chat`, {
       query,
-      history,
+      conversation_history: history,
     })
     return response.data
   }

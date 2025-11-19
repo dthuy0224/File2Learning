@@ -98,6 +98,37 @@ class CRUDRecommendation:
             limit=limit
         )
     
+    def get_recommendations_for_plan(
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        limit: int = 20
+    ) -> List[AdaptiveRecommendation]:
+        """
+        Get recommendations for plan generation.
+        Includes both active AND accepted recommendations (but not dismissed/expired).
+        This ensures that when user accepts a recommendation, it will be included in the plan.
+        """
+        query = db.query(AdaptiveRecommendation).filter(
+            AdaptiveRecommendation.user_id == user_id,
+            AdaptiveRecommendation.is_dismissed == 0,  # Exclude dismissed
+            or_(
+                AdaptiveRecommendation.expires_at.is_(None),
+                AdaptiveRecommendation.expires_at > datetime.utcnow()
+            )
+        )
+        
+        # Include both active (is_accepted == 0) AND accepted (is_accepted == 1) recommendations
+        # This way, accepted recommendations will be included in the plan
+        
+        return query.order_by(
+            AdaptiveRecommendation.is_accepted.desc(),  # Accepted first (priority)
+            AdaptiveRecommendation.priority.desc(),
+            AdaptiveRecommendation.relevance_score.desc(),
+            AdaptiveRecommendation.created_at.desc()
+        ).limit(limit).all()
+    
     def update(
         self,
         db: Session,

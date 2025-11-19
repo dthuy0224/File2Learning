@@ -1,15 +1,20 @@
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
+import logging
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, desc
+from sqlalchemy import and_, desc, func
 
 # --- SỬA IMPORT QUAN TRỌNG TẠI ĐÂY ---
 from app.models.daily_plan import DailyStudyPlan
 from app.models.study_schedule import StudySchedule
+from app.models.study_session import StudySession
+from app.models.learning_goal import LearningGoal
 
 # -------------------------------------
 
 from app.schemas.daily_plan import DailyStudyPlanCreate, DailyStudyPlanUpdate
+
+logger = logging.getLogger(__name__)
 
 
 def get_today_plan(db: Session, user_id: int) -> Optional[DailyStudyPlan]:
@@ -143,34 +148,55 @@ def complete_plan(
         plan.completion_percentage = (
             completed_tasks_count / plan.total_tasks_count
         ) * 100
-    else:
-        plan.completion_percentage = 100
 
-    db.commit()
-    db.refresh(plan)
-    return plan
+    plan.updated_at = datetime.utcnow()
 
+    # ✅ Integration 1: Create StudySession for analytics
+    if plan.started_at:
+        session = StudySession(
+            user_id=user_id,
+            daily_plan_id=plan_id,
+            session_type="mixed",  # Daily plan contains multiple activities
+            duration_seconds=actual_minutes_spent * 60,
+            started_at=plan.started_at,
+            ended_at=datetime.utcnow(),
+            performance_data=actual_performance or {},
+            is_planned=True,
+        )
+        db.add(session)
 
-def update_plan(
-    db: Session, plan_id: int, user_id: int, plan_update: DailyStudyPlanUpdate
-) -> Optional[DailyStudyPlan]:
-    """Update plan details"""
-    plan = (
-        db.query(DailyStudyPlan)
-        .filter(and_(DailyStudyPlan.id == plan_id, DailyStudyPlan.user_id == user_id))
-        .first()
+    # ✅ Integration 2: Update Learning Goal Progress
+    # Get active goals and update their progress based on completed tasks
+    active_goals = (
+        db.query(LearningGoal)
+        .filter(and_(LearningGoal.user_id == user_id, LearningGoal.status == "active"))
+        .all()
     )
 
-    if not plan:
-        return None
+    for goal in active_goals:
+        # Increment progress by completed tasks count
+        if goal.current_progress is None:
+            goal.current_progress = 0
+        goal.current_progress += completed_tasks_count
 
-    update_data = plan_update.model_dump(exclude_unset=True)
-
-    for field, value in update_data.items():
-        setattr(plan, field, value)
+        # Update goal status if target reached
+        if goal.target_metrics and "tasks_completed" in goal.target_metrics:
+            target = goal.target_metrics["tasks_completed"]
+            if goal.current_progress >= target:
+                goal.status = "completed"
+                goal.current_progress = target
 
     db.commit()
     db.refresh(plan)
+
+    # 🆕 THÊM: Trigger completion notification (async)
+    try:
+        from app.tasks.notification_tasks import send_completion_notification
+
+        send_completion_notification.delay(user_id, plan_id)
+    except Exception as e:
+        logger.warning(f"Failed to trigger completion notification: {e}")
+
     return plan
 
 

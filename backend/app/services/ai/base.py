@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -30,6 +31,7 @@ class AIExecutor:
             "gemini": {"success": 0, "failures": 0},
             "groq": {"success": 0, "failures": 0},
         }
+        self.provider_cooldowns: Dict[str, datetime] = {}
         self._init_gemini()
         self._init_groq()
 
@@ -77,6 +79,8 @@ class AIExecutor:
         providers = self._get_provider_order(preferred_provider)
 
         for provider in providers:
+            if not self._is_provider_available(provider):
+                continue
             try:
                 response = await self._execute_provider(provider, prompt)
                 if response:
@@ -85,6 +89,7 @@ class AIExecutor:
             except Exception as exc:  # pragma: no cover - logging only
                 logger.error("%s provider failed: %s", provider.value, exc)
                 self.provider_stats[provider.value]["failures"] += 1
+                self._handle_provider_failure(provider, exc)
 
         raise RuntimeError("All AI providers unavailable")
 
@@ -116,11 +121,12 @@ class AIExecutor:
         return completion.choices[0].message.content
 
     def _get_provider_order(self, preferred: Optional[AIProvider]) -> List[AIProvider]:
-        if preferred:
+        available = [p for p in [AIProvider.GEMINI, AIProvider.GROQ] if self._has_client(p)]
+        if preferred and preferred in available:
             order = [preferred]
-            order.extend([p for p in [AIProvider.GEMINI, AIProvider.GROQ] if p != preferred])
+            order.extend([p for p in available if p != preferred])
             return order
-        return [AIProvider.GEMINI, AIProvider.GROQ]
+        return available
 
     @staticmethod
     def _get_model_name(provider: AIProvider) -> str:
@@ -132,4 +138,32 @@ class AIExecutor:
 
     def get_stats(self) -> Dict[str, Dict[str, int]]:
         return self.provider_stats
+
+    def _has_client(self, provider: AIProvider) -> bool:
+        if provider == AIProvider.GEMINI:
+            return self.gemini_client is not None
+        if provider == AIProvider.GROQ:
+            return self.groq_client is not None
+        return False
+
+    def _is_provider_available(self, provider: AIProvider) -> bool:
+        if not self._has_client(provider):
+            return False
+        cooldown_until = self.provider_cooldowns.get(provider.value)
+        if cooldown_until and cooldown_until > datetime.utcnow():
+            return False
+        return True
+
+    def _handle_provider_failure(self, provider: AIProvider, exc: Exception) -> None:
+        message = str(exc).lower()
+        if any(keyword in message for keyword in ("quota", "rate limit", "429")):
+            cooldown_seconds = int(os.getenv("AI_PROVIDER_COOLDOWN_SECONDS", "600"))
+            self.provider_cooldowns[provider.value] = datetime.utcnow() + timedelta(
+                seconds=cooldown_seconds
+            )
+            logger.warning(
+                "%s marked unavailable for %ss due to quota/rate limits",
+                provider.value,
+                cooldown_seconds,
+            )
 

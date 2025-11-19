@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, RefreshCw, TrendingUp, CheckCircle2, XCircle, 
-  Eye, Clock, Target, AlertCircle, Calendar 
+  Eye, Clock, Target, AlertCircle, Calendar, CalendarDays
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import recommendationService, { 
@@ -14,6 +15,7 @@ import dailyPlanService from '../services/dailyPlanService';
 
 const RecommendationsPage = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [filterType, setFilterType] = useState<RecommendationType | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<RecommendationPriority | 'all'>('all');
   const [showActiveOnly, setShowActiveOnly] = useState(true);
@@ -37,7 +39,7 @@ const RecommendationsPage = () => {
 
   // Fetch today's plan to check which recommendations are included
   const { data: todayPlanData } = useQuery({
-    queryKey: ['today-plan'],
+    queryKey: ['todayPlan'],
     queryFn: () => dailyPlanService.getTodayPlan()
   });
 
@@ -72,6 +74,21 @@ const RecommendationsPage = () => {
       toast.success('Recommendation accepted!');
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['recommendation-stats'] });
+    }
+  });
+
+  // Regenerate plan mutation
+  const regeneratePlanMutation = useMutation({
+    mutationFn: () => dailyPlanService.regenerateTodayPlan(),
+    onSuccess: (data) => {
+      toast.success(data.message || 'Plan regenerated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['todayPlan'] });
+      queryClient.invalidateQueries({ queryKey: ['todayPlan'] });
+      // Navigate to today's plan page
+      navigate('/study-schedule');
+    },
+    onError: () => {
+      toast.error('Failed to regenerate plan');
     }
   });
 
@@ -130,7 +147,6 @@ const RecommendationsPage = () => {
   }
 
   const recommendations = recommendationsData?.recommendations || [];
-  const activeCount = recommendationsData?.active_count || 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -146,14 +162,24 @@ const RecommendationsPage = () => {
               AI-powered personalized learning suggestions based on your progress
             </p>
           </div>
-          <button
-            onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
-            Generate New
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => regeneratePlanMutation.mutate()}
+              disabled={regeneratePlanMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              <CalendarDays className={`w-4 h-4 ${regeneratePlanMutation.isPending ? 'animate-spin' : ''}`} />
+              Generate Today's Plan
+            </button>
+            <button
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
+              Generate New
+            </button>
+          </div>
         </div>
       </div>
 
