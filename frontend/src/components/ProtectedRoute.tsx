@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     const checkAuth = async () => {
       hasChecked.current = true
       
-      // ✅ Nếu chưa có user mà có token → fetch lại
+      // If no user but has token → fetch again
       if (!user && token) {
         try {
           await fetchUser()
@@ -26,7 +26,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
           console.error("Auth check failed:", err)
         }
       } else if (!user) {
-        // ✅ Thử check cookie-based login fallback
+        // Try cookie-based login fallback
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/users/me`, {
             method: "GET",
@@ -45,7 +45,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     checkAuth()
   }, [user, token])
 
-  // 🔄 Hiển thị khi đang kiểm tra
+  // Display while checking
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -54,21 +54,21 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     )
   }
 
-  // 🔐 Nếu chưa đăng nhập → về trang login
+  // If not logged in → redirect to login page
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // ⚙️ Nếu user cần setup → ép sang trang setup-learning
+  // If user needs setup → redirect to setup-learning page
   if (user.needs_setup && location.pathname !== "/setup-learning") {
     return <Navigate to="/setup-learning" replace />
   }
 
-  // ✅ Nếu user đã setup mà vẫn ở trang setup-learning → đẩy sang dashboard
+  // If user already setup but still on setup-learning page → redirect to dashboard
   if (!user.needs_setup && location.pathname === "/setup-learning") {
     return <Navigate to="/dashboard" replace />
   }
 
-  // ✅ Cho phép render nội dung bảo vệ
+  // Allow rendering protected content
   return <>{children}</>
 }

@@ -29,8 +29,8 @@ import FlashcardSetDetailPage from "./pages/FlashcardSetDetailPage";
 import LearningGoalsPage from "./pages/LearningGoalsPage";
 import TodayPlanPage from "./pages/TodayPlanPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
+import StudySchedulePage from "./pages/StudySchedulePage";
 import NotificationsPage from "./pages/NotificationsPage";
-
 
 // Components
 import Layout from "./components/Layout";
@@ -46,7 +46,7 @@ function App() {
         if (user) updateUser(user);
       } catch (err) {
         console.error("❌ Failed to fetch user:", err);
-        logout();
+        logout(); // If token expires then logout
       }
     };
 
@@ -139,6 +139,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <RecommendationsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/study-schedule"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudySchedulePage />
               </Layout>
             </ProtectedRoute>
           }

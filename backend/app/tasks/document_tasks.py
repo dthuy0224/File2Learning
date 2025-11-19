@@ -4,12 +4,25 @@ from typing import Dict, Any, List
 from pathlib import Path
 from datetime import datetime
 
+from celery import chain
+
+from celery import chain
 from app.tasks.celery_app import celery_app
 from app.utils.file_processor import FileProcessor
 from app.core.database import SessionLocal
 from app.crud import document as document_crud
 from app.models.document import Document
 from app.schemas.document import DocumentUpdate
+from app.tasks.document_ai_tasks import (
+    generate_document_summary_task,
+    generate_document_vocabulary_task,
+    generate_document_quiz_task,
+)
+from app.tasks.document_ai_tasks import (
+    generate_document_summary_task,
+    generate_document_vocabulary_task,
+    generate_document_quiz_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +97,12 @@ def process_document_task(self, document_id: int, file_path: str, original_filen
                 quality_score=analysis["quality_score"],
                 language_detected=analysis["language_detected"],
                 encoding_issues=analysis["encoding_issues"],
+                summary_status="queued",
+                vocab_status="queued",
+                quiz_status="queued",
+                summary_error=None,
+                vocab_error=None,
+                quiz_error=None,
                 **metadata
             )
 
@@ -92,13 +111,21 @@ def process_document_task(self, document_id: int, file_path: str, original_filen
 
             logger.info(f"Successfully processed document {document_id}")
 
+            # Trigger AI artifact generation in sequence (summary -> vocab -> quiz)
+            chain(
+                generate_document_summary_task.s(document_id=document_id),
+                generate_document_vocabulary_task.s(document_id=document_id),
+                generate_document_quiz_task.s(document_id=document_id),
+            ).apply_async()
+
             return {
                 "success": True,
                 "document_id": document_id,
                 "word_count": analysis["word_count"],
                 "difficulty_level": analysis["difficulty_level"],
                 "metadata": metadata,
-                "processing_time": "completed"
+                "processing_time": "completed",
+                "ai_artifacts_queued": True,
             }
 
         except Exception as e:

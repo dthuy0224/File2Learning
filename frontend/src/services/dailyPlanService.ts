@@ -16,6 +16,7 @@ export interface RecommendedTask {
   reason?: string
   topic?: string
   difficulty?: string
+  recommendation_id?: number  
 }
 
 export interface DailyStudyPlan {
@@ -43,6 +44,7 @@ export interface DailyStudyPlan {
   started_at?: string
   completed_at?: string
   updated_at: string
+  source_recommendation_ids?: number[]  // NEW: Track which recommendations were used
 }
 
 export interface TodayPlanResponse {

@@ -8,7 +8,8 @@ import {
   BarChart3,
   Calendar,
   Target,
-  Sparkles
+  Sparkles,
+  CalendarDays
 } from 'lucide-react'
 import { LucideIcon } from 'lucide-react'
 
@@ -39,6 +40,11 @@ const navigation: NavigationItem[] = [
     name: 'Recommendations',
     href: '/recommendations',
     icon: Sparkles,
+  },
+  {
+    name: 'Study Schedule',
+    href: '/study-schedule',
+    icon: CalendarDays,
   },
   {
     name: 'Documents',

@@ -26,7 +26,7 @@ export const userService = {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-  // ✅ Trả về object user đầy đủ
+  // Returns full user object
   return res.data;
 },
 

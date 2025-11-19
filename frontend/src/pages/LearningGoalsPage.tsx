@@ -2,14 +2,10 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Target, Plus, Calendar, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react'
+import { Target, Plus, Calendar, CheckCircle2, AlertCircle, Clock, Trash2, TrendingUp, Sparkles } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import learningGoalService, { CreateLearningGoal } from '@/services/learningGoalService'
+import learningGoalService, { CreateLearningGoal, LearningGoal } from '@/services/learningGoalService'
+import GoalCreationWizard from '@/components/GoalCreationWizard'
 
 // Helper functions (instead of date-fns)
 const formatDate = (dateString: string) => {
@@ -30,11 +26,6 @@ const getDaysDifference = (targetDate: string) => {
 export default function LearningGoalsPage() {
   const queryClient = useQueryClient()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [newGoal, setNewGoal] = useState<Partial<CreateLearningGoal>>({
-    goal_type: 'vocabulary_count',
-    priority: 'medium',
-    target_metrics: {}
-  })
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery({
@@ -54,12 +45,23 @@ export default function LearningGoalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['learningGoals'] })
       queryClient.invalidateQueries({ queryKey: ['goalsSummary'] })
-      toast.success('Goal created successfully! 🎯')
+      toast.success('Goal created successfully! 🎯 Milestones auto-generated!')
       setIsCreateDialogOpen(false)
-      resetNewGoal()
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to create goal')
+    }
+  })
+
+  // Generate milestones mutation
+  const generateMilestonesMutation = useMutation({
+    mutationFn: (goalId: number) => learningGoalService.generateMilestones(goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learningGoals'] })
+      toast.success('Milestones generated successfully! ✨')
+    },
+    onError: () => {
+      toast.error('Failed to generate milestones')
     }
   })
 
@@ -73,21 +75,8 @@ export default function LearningGoalsPage() {
     }
   })
 
-  const resetNewGoal = () => {
-    setNewGoal({
-      goal_type: 'vocabulary_count',
-      priority: 'medium',
-      target_metrics: {}
-    })
-  }
-
-  const handleCreateGoal = () => {
-    if (!newGoal.goal_title || !newGoal.start_date || !newGoal.target_date) {
-      toast.error('Please fill in all required fields')
-      return
-    }
-
-    createMutation.mutate(newGoal as CreateLearningGoal)
+  const handleCreateGoal = async (goal: CreateLearningGoal) => {
+    await createMutation.mutateAsync(goal)
   }
 
   const getStatusColor = (status: string) => {
@@ -124,6 +113,13 @@ export default function LearningGoalsPage() {
           Create Goal
         </Button>
       </div>
+
+      {/* Goal Creation Wizard */}
+      <GoalCreationWizard
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSubmit={handleCreateGoal}
+      />
 
       {/* Summary Cards */}
       {summary && (
@@ -284,171 +280,54 @@ export default function LearningGoalsPage() {
                     {JSON.stringify(goal.target_metrics)}
                   </p>
                 </div>
+
+                {/* Milestones Preview */}
+                {goal.milestones && goal.milestones.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-700">Milestones</p>
+                      <span className="text-xs text-gray-500">
+                        {goal.milestones.filter((m: any) => m.status === 'completed').length} / {goal.milestones.length} completed
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {goal.milestones.slice(0, 3).map((milestone: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs">
+                          <div className={`w-2 h-2 rounded-full ${
+                            milestone.status === 'completed' ? 'bg-green-500' :
+                            milestone.status === 'in_progress' ? 'bg-yellow-500' :
+                            'bg-gray-300'
+                          }`} />
+                          <span className="text-gray-600">
+                            Week {milestone.week}: {milestone.target}
+                          </span>
+                        </div>
+                      ))}
+                      {goal.milestones.length > 3 && (
+                        <p className="text-xs text-gray-500">+{goal.milestones.length - 3} more milestones</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Generate Milestones Button */}
+                {(!goal.milestones || goal.milestones.length === 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => generateMilestonesMutation.mutate(goal.id)}
+                    disabled={generateMilestonesMutation.isPending}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {generateMilestonesMutation.isPending ? 'Generating...' : 'Generate Milestones'}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))
         )}
       </div>
-
-      {/* Create Goal Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Learning Goal 🎯</DialogTitle>
-            <DialogDescription>
-              Set a clear objective to track your progress
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Goal Title */}
-            <div>
-              <Label htmlFor="title">Goal Title *</Label>
-              <Input
-                id="title"
-                placeholder="e.g., Learn 500 Business Words"
-                value={newGoal.goal_title || ''}
-                onChange={(e) => setNewGoal({ ...newGoal, goal_title: e.target.value })}
-              />
-            </div>
-
-            {/* Goal Type */}
-            <div>
-              <Label htmlFor="type">Goal Type *</Label>
-              <Select
-                value={newGoal.goal_type}
-                onValueChange={(value) => setNewGoal({ ...newGoal, goal_type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vocabulary_count">Vocabulary Count</SelectItem>
-                  <SelectItem value="quiz_score">Quiz Score Target</SelectItem>
-                  <SelectItem value="exam_preparation">Exam Preparation</SelectItem>
-                  <SelectItem value="time_based">Time-Based Practice</SelectItem>
-                  <SelectItem value="topic_mastery">Topic Mastery</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your goal..."
-                value={newGoal.description || ''}
-                onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-              />
-            </div>
-
-            {/* Target Metrics (Dynamic based on goal_type) */}
-            <div>
-              <Label>Target Metrics *</Label>
-              {newGoal.goal_type === 'vocabulary_count' && (
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="500"
-                    onChange={(e) => setNewGoal({
-                      ...newGoal,
-                      target_metrics: { vocabulary: parseInt(e.target.value), unit: 'words' }
-                    })}
-                  />
-                  <span className="flex items-center text-sm text-gray-600">words</span>
-                </div>
-              )}
-              {newGoal.goal_type === 'quiz_score' && (
-                <Input
-                  type="number"
-                  placeholder="85"
-                  onChange={(e) => setNewGoal({
-                    ...newGoal,
-                    target_metrics: { target_score: parseInt(e.target.value), unit: 'percentage' }
-                  })}
-                />
-              )}
-              {newGoal.goal_type === 'exam_preparation' && (
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Exam name (e.g., IELTS)"
-                    onChange={(e) => setNewGoal({
-                      ...newGoal,
-                      target_metrics: {
-                        ...newGoal.target_metrics,
-                        exam: e.target.value
-                      }
-                    })}
-                  />
-                  <Input
-                    type="number"
-                    step="0.5"
-                    placeholder="Target score (e.g., 6.5)"
-                    onChange={(e) => setNewGoal({
-                      ...newGoal,
-                      target_metrics: {
-                        ...newGoal.target_metrics,
-                        target_score: parseFloat(e.target.value)
-                      }
-                    })}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="start_date">Start Date *</Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  value={newGoal.start_date || ''}
-                  onChange={(e) => setNewGoal({ ...newGoal, start_date: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="target_date">Target Date *</Label>
-                <Input
-                  id="target_date"
-                  type="date"
-                  value={newGoal.target_date || ''}
-                  onChange={(e) => setNewGoal({ ...newGoal, target_date: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Priority */}
-            <div>
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={newGoal.priority}
-                onValueChange={(value) => setNewGoal({ ...newGoal, priority: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateGoal} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating...' : 'Create Goal'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

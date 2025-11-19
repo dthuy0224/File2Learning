@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core import deps
 from app.crud import quiz, flashcard
+from app.tasks.learning_tasks import process_learning_event_task
 from app.schemas.quiz import Quiz, QuizCreate, QuizUpdate, QuizAttempt, QuizAttemptCreate, QuizAttemptSubmit, QuizQuestionCreate
 from app.schemas.user import User
 
@@ -270,6 +271,30 @@ def submit_quiz_attempt(
 
     db.commit()
     db.refresh(attempt_obj)
+
+    # Trigger adaptive learning updates asynchronously
+    try:
+        process_learning_event_task.delay(
+            user_id=current_user.id,
+            event_type="quiz_completed",
+            payload={
+                "quiz_id": quiz_id,
+                "attempt_id": attempt_obj.id,
+                "percentage": percentage,
+                "score": attempt_obj.score,
+                "correct_answers": correct_answers,
+                "total_questions": len(questions),
+            },
+        )
+    except Exception as background_error:  # pragma: no cover - log path
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Failed to enqueue learning event for quiz %s (user %s): %s",
+            quiz_id,
+            current_user.id,
+            background_error,
+        )
 
     return attempt_obj
 

@@ -115,6 +115,14 @@ class LearningGoalService {
   async deleteGoal(goalId: number): Promise<void> {
     await api.delete(`${this.baseUrl}/${goalId}`)
   }
+
+  /**
+   * Generate milestones for a goal
+   */
+  async generateMilestones(goalId: number): Promise<LearningGoal> {
+    const response = await api.post<LearningGoal>(`${this.baseUrl}/${goalId}/generate-milestones`)
+    return response.data
+  }
 }
 
 export default new LearningGoalService()

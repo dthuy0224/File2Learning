@@ -8,10 +8,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { 
   CheckCircle2, Clock, Play, SkipForward, 
-  Star, Target, BookOpen, Brain, CreditCard
+  Star, Target, BookOpen, Brain, CreditCard, Sparkles, Calendar
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import dailyPlanService, { CompletePlanData } from '@/services/dailyPlanService'
+import studyScheduleService from '@/services/studyScheduleService'
+import { invalidateProgressQueries } from '@/utils/progressInvalidation'
 
 // Helper function (instead of date-fns)
 const formatDate = (dateString: string) => {
@@ -36,11 +38,20 @@ export default function TodayPlanPage() {
     refetchOnWindowFocus: false
   })
 
+  // Fetch schedule if plan has schedule_id
+  const { data: schedule } = useQuery({
+    queryKey: ['schedule', todayPlan?.plan?.schedule_id],
+    queryFn: () => studyScheduleService.getSchedule(todayPlan!.plan!.schedule_id!),
+    enabled: !!todayPlan?.plan?.schedule_id,
+    retry: false
+  })
+
   // Start plan mutation
   const startMutation = useMutation({
     mutationFn: (planId: number) => dailyPlanService.startPlan(planId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
+      invalidateProgressQueries(queryClient)
       toast.success('Plan started! Good luck! 💪')
     }
   })
@@ -50,8 +61,7 @@ export default function TodayPlanPage() {
     mutationFn: ({ planId, data }: { planId: number; data: CompletePlanData }) =>
       dailyPlanService.completePlan(planId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
-      queryClient.invalidateQueries({ queryKey: ['userStats'] })
+      invalidateProgressQueries(queryClient, { includeTodayPlan: true })
       toast.success('Awesome! Plan completed! 🎉')
       setIsCompleteDialogOpen(false)
       setCompletionData({})
@@ -64,6 +74,7 @@ export default function TodayPlanPage() {
       dailyPlanService.skipPlan(planId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todayPlan'] })
+      invalidateProgressQueries(queryClient)
       toast.success('Plan skipped')
     }
   })
@@ -175,6 +186,32 @@ export default function TodayPlanPage() {
         </Card>
       )}
 
+      {/* Schedule Info */}
+      {schedule && (
+        <Card className="border-indigo-200 bg-indigo-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+                <div>
+                  <p className="font-semibold text-indigo-900">From Schedule: {schedule.schedule_name}</p>
+                  <p className="text-sm text-indigo-700">
+                    {schedule.schedule_config.daily_minutes} min/day • {schedule.schedule_config.days_per_week} days/week
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/study-schedule'}
+              >
+                View Schedule
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* AI Summary */}
       {plan.plan_summary && (
         <Card>
@@ -277,10 +314,18 @@ export default function TodayPlanPage() {
                   {/* Task Details */}
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg text-gray-900">
-                          {task.title || task.type.replace('_', ' ')}
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-lg text-gray-900">
+                            {task.title || task.type.replace('_', ' ')}
+                          </h3>
+                          {task.recommendation_id && (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-300 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              AI Recommended
+                            </span>
+                          )}
+                        </div>
                         {task.reason && (
                           <p className="text-sm text-gray-600 mt-1">{task.reason}</p>
                         )}

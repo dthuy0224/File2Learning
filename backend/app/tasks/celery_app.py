@@ -7,9 +7,11 @@ celery_app = Celery(
     broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     backend=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
     include=[
-        "app.tasks.document_tasks",  # task cũ
-        "app.tasks.notification_tasks"  # thêm dòng này
-    ]
+        "app.tasks.document_tasks",
+        "app.tasks.notification_tasks",
+        "app.tasks.learning_tasks",
+        "app.tasks.document_ai_tasks",
+    ],
 )
 
 # Optional configuration

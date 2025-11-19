@@ -135,6 +135,36 @@ class CRUDRecommendation:
         db.refresh(db_recommendation)
         return db_recommendation
     
+    def mark_included_in_plan(
+        self,
+        db: Session,
+        *,
+        recommendation_id: int,
+        plan_id: int,
+        plan_date: str
+    ) -> Optional[AdaptiveRecommendation]:
+        """Mark recommendation as included in a daily plan"""
+        db_recommendation = self.get(db, recommendation_id)
+        if not db_recommendation:
+            return None
+        
+        # Update extra_data to track plan inclusion
+        if not db_recommendation.extra_data:
+            db_recommendation.extra_data = {}
+        
+        db_recommendation.extra_data['included_in_plan'] = True
+        db_recommendation.extra_data['plan_id'] = plan_id
+        db_recommendation.extra_data['plan_date'] = plan_date
+        
+        # Also mark as viewed since user will see it in plan
+        if not db_recommendation.is_viewed:
+            db_recommendation.is_viewed = 1
+            db_recommendation.viewed_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(db_recommendation)
+        return db_recommendation
+    
     def mark_accepted(
         self,
         db: Session,

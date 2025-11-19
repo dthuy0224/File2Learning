@@ -26,7 +26,7 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void
   setLoading: (loading: boolean) => void
   reset: () => void
-  fetchUser: () => Promise<void> // ✅ thêm
+  fetchUser: () => Promise<void> // Added
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,10 +36,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: false,
 
-      // Khi login → set token và fetch user từ backend
+      // When login → set token and fetch user from backend
     login: async (token: string | null, user: User | null = null) => {
   if (token) {
-    localStorage.setItem('ai-learning-auth-token', token) // ✅ lưu trực tiếp
+    localStorage.setItem('ai-learning-auth-token', token) // Save directly
   } else {
     localStorage.removeItem('ai-learning-auth-token')
   }
@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthState>()(
         set({ token: null, user: null, isLoading: false })
       },
 
-      // ✅ Đồng bộ dữ liệu user từ backend
+      // Sync user data from backend
       fetchUser: async () => {
         try {
           const data = await userService.getProfile()
