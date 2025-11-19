@@ -10,6 +10,7 @@ from app.models.learning_goal import LearningGoal
 from app.models.learning_profile import LearningProfile
 from app.models.recommendation import AdaptiveRecommendation
 from app.models.study_schedule import StudySchedule
+from app.models.document import Document
 from app.schemas.daily_plan import RecommendedTask, DailyStudyPlanCreate
 from app.crud.crud_recommendation import crud_recommendation
 from app.crud import crud_study_schedule
@@ -53,8 +54,9 @@ class DailyPlanGenerator:
     
     def _get_or_generate_recommendations(self) -> List[AdaptiveRecommendation]:
         """Get existing recommendations or generate new ones"""
-        # Check if we have fresh recommendations (< 24 hours old)
-        existing_recs = crud_recommendation.get_active_recommendations(
+        # Use get_recommendations_for_plan to include accepted recommendations
+        # This ensures that when user accepts a recommendation, it will be included in the plan
+        existing_recs = crud_recommendation.get_recommendations_for_plan(
             self.db, user_id=self.user_id, limit=20
         )
         
@@ -68,7 +70,7 @@ class DailyPlanGenerator:
                 logger.info(f"Recommendations are {hours_old:.1f} hours old, generating new ones")
                 from app.services.recommendation_engine import generate_recommendations_for_user
                 generate_recommendations_for_user(self.db, self.user_id, max_recommendations=15)
-                existing_recs = crud_recommendation.get_active_recommendations(
+                existing_recs = crud_recommendation.get_recommendations_for_plan(
                     self.db, user_id=self.user_id, limit=20
                 )
         elif not existing_recs:
@@ -76,7 +78,7 @@ class DailyPlanGenerator:
             logger.info(f"No recommendations found, generating new ones")
             from app.services.recommendation_engine import generate_recommendations_for_user
             generate_recommendations_for_user(self.db, self.user_id, max_recommendations=15)
-            existing_recs = crud_recommendation.get_active_recommendations(
+            existing_recs = crud_recommendation.get_recommendations_for_plan(
                 self.db, user_id=self.user_id, limit=20
             )
         
@@ -100,6 +102,129 @@ class DailyPlanGenerator:
                     return rec
         
         return None
+    
+    def _create_task_from_recommendation(self, rec: AdaptiveRecommendation, remaining_time: int) -> Optional[RecommendedTask]:
+        """Create a task from an accepted recommendation"""
+        try:
+            if rec.type == "review_flashcard":
+                # Get due flashcards for this recommendation
+                topic = rec.extra_data.get('topic') if rec.extra_data else None
+                due_flashcards = self._get_due_flashcards(date.today())
+                
+                # Filter by topic if specified
+                if topic and topic != "General":
+                    due_flashcards = [fc for fc in due_flashcards if topic in (fc.tags or "")]
+                
+                if not due_flashcards:
+                    return None
+                
+                num_cards = min(len(due_flashcards), 20)
+                estimated_minutes = max(5, min(int(num_cards * 0.5), remaining_time))
+                
+                return RecommendedTask(
+                    type="flashcard_review",
+                    entity_ids=[fc.id for fc in due_flashcards[:num_cards]],
+                    count=num_cards,
+                    estimated_minutes=estimated_minutes,
+                    priority="high" if rec.priority in ["urgent", "high"] else "normal",
+                    reason=rec.reason or rec.description,
+                    topic=topic or "Mixed",
+                    recommendation_id=rec.id
+                )
+            
+            elif rec.type == "take_quiz" or rec.type == "focus_weak_area":
+                # Find quiz for this recommendation
+                topic = rec.extra_data.get('topic') if rec.extra_data else None
+                quiz = None
+                
+                if rec.target_resource_id:
+                    # Recommendation has specific quiz ID
+                    quiz = self.db.query(Quiz).filter(Quiz.id == rec.target_resource_id).first()
+                elif topic:
+                    # Find quiz by topic
+                    quiz = self.db.query(Quiz).filter(
+                        Quiz.quiz_type == topic,
+                        Quiz.created_by == self.user_id
+                    ).first()
+                
+                if not quiz:
+                    return None
+                
+                estimated_minutes = min(15, remaining_time)
+                
+                return RecommendedTask(
+                    type="quiz",
+                    entity_id=quiz.id,
+                    title=quiz.title,
+                    estimated_minutes=estimated_minutes,
+                    priority="high" if rec.priority in ["urgent", "high"] else "medium",
+                    reason=rec.reason or rec.description,
+                    topic=topic or quiz.quiz_type,
+                    recommendation_id=rec.id
+                )
+            
+            elif rec.type == "read_document":
+                # Document reading task
+                doc = None
+                
+                if rec.target_resource_id:
+                    doc = self.db.query(Document).filter(Document.id == rec.target_resource_id).first()
+                
+                if not doc:
+                    return None
+                
+                estimated_minutes = min(20, remaining_time)
+                
+                return RecommendedTask(
+                    type="document_reading",
+                    entity_id=doc.id,
+                    title=doc.title or doc.original_filename,
+                    estimated_minutes=estimated_minutes,
+                    priority="medium",
+                    reason=rec.reason or rec.description,
+                    topic=doc.document_type or "General",
+                    recommendation_id=rec.id
+                )
+            
+            elif rec.type == "study_topic":
+                # General study task - try to find related quiz or document
+                topic = rec.extra_data.get('topic') if rec.extra_data else None
+                quiz = None
+                
+                if topic:
+                    quiz = self.db.query(Quiz).filter(
+                        Quiz.quiz_type == topic,
+                        Quiz.created_by == self.user_id
+                    ).first()
+                
+                if quiz:
+                    estimated_minutes = min(15, remaining_time)
+                    return RecommendedTask(
+                        type="quiz",
+                        entity_id=quiz.id,
+                        title=quiz.title,
+                        estimated_minutes=estimated_minutes,
+                        priority="medium",
+                        reason=rec.reason or rec.description,
+                        topic=topic or quiz.quiz_type,
+                        recommendation_id=rec.id
+                    )
+                
+                # If no quiz found, create a general practice task
+                return RecommendedTask(
+                    type="free_practice",
+                    estimated_minutes=min(15, remaining_time),
+                    priority="normal",
+                    reason=rec.reason or rec.description,
+                    topic=topic or "General",
+                    recommendation_id=rec.id
+                )
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error creating task from recommendation {rec.id}: {e}")
+            return None
     
     def generate_plan(self, plan_date: date = None) -> DailyStudyPlanCreate:
         if not plan_date:
@@ -234,9 +359,26 @@ class DailyPlanGenerator:
         - 40% SRS (flashcard review) - CRITICAL
         - 30% Weak topics (quizzes)
         - 30% Goal progress (new material/practice)
+        
+        NEW: Also creates tasks from accepted recommendations
         """
         tasks = []
         time_used = 0
+        
+        # PRIORITY 0: Create tasks from accepted recommendations first
+        accepted_recs = [rec for rec in self.recommendations if rec.is_accepted == 1]
+        for rec in accepted_recs:
+            if rec.id in self.used_recommendation_ids:
+                continue
+            if time_used >= time_budget * 0.8:  # Stop at 80% budget
+                break
+            
+            task = self._create_task_from_recommendation(rec, time_budget - time_used)
+            if task:
+                tasks.append(task)
+                self.used_recommendation_ids.append(rec.id)
+                time_used += task.estimated_minutes
+                logger.info(f"Created task from accepted recommendation #{rec.id}: {rec.type}")
         
         # Task 1: Flashcard Review (Priority 1)
         if due_flashcards and time_used < time_budget:

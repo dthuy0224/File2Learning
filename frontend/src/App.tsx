@@ -27,7 +27,6 @@ import QuickQuizPage from "./pages/QuickQuizPage";
 import FlashcardReviewPage from "./pages/FlashcardReviewPage";
 import FlashcardSetDetailPage from "./pages/FlashcardSetDetailPage";
 import LearningGoalsPage from "./pages/LearningGoalsPage";
-import TodayPlanPage from "./pages/TodayPlanPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import StudySchedulePage from "./pages/StudySchedulePage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -113,13 +112,7 @@ function App() {
         {/* Adaptive Learning */}
         <Route
           path="/today-plan"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <TodayPlanPage />
-              </Layout>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/study-schedule" replace />}
         />
 
         <Route
@@ -337,3 +330,4 @@ function App() {
 }
 
 export default App;
+

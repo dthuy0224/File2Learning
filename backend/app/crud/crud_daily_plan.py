@@ -229,6 +229,10 @@ def complete_plan(
     # ✅ Integration 3: Update Learning Goal Progress
     # Get active goals and update their progress based on completed tasks
     from app.models.learning_goal import LearningGoal
+    from app.crud import crud_learning_goal
+    from app.models.flashcard import Flashcard
+    from sqlalchemy import func
+    
     active_goals = db.query(LearningGoal).filter(
         and_(
             LearningGoal.user_id == user_id,
@@ -237,17 +241,103 @@ def complete_plan(
     ).all()
     
     for goal in active_goals:
-        # Increment progress by completed tasks count
+        # Initialize current_progress if None
         if goal.current_progress is None:
-            goal.current_progress = 0
-        goal.current_progress += completed_tasks_count
+            goal.current_progress = {}
         
-        # Update goal status if target reached
-        if goal.target_metrics and 'tasks_completed' in goal.target_metrics:
-            target = goal.target_metrics['tasks_completed']
-            if goal.current_progress >= target:
+        # Handle different goal types
+        if goal.goal_type == 'vocabulary_count':
+            # Count mastered flashcards (ease_factor >= 2.0 AND repetitions >= 2)
+            vocab_count = db.query(func.count(Flashcard.id)).filter(
+                Flashcard.owner_id == user_id,
+                Flashcard.ease_factor >= 2.0,
+                Flashcard.repetitions >= 2
+            ).scalar() or 0
+            
+            target_vocab = goal.target_metrics.get('vocabulary', 0)
+            percentage = int((vocab_count / target_vocab * 100)) if target_vocab > 0 else 0
+            
+            goal.current_progress = {
+                "vocabulary": vocab_count,
+                "percentage": float(percentage),
+                "on_track": percentage >= 0,
+                "days_active": (date.today() - goal.start_date).days
+            }
+            goal.completion_percentage = percentage
+            
+            # Check if completed
+            if vocab_count >= target_vocab and goal.status == 'active':
                 goal.status = 'completed'
-                goal.current_progress = target
+                goal.completed_at = datetime.utcnow()
+                goal.actual_completion_date = date.today()
+        
+        elif goal.goal_type == 'quiz_score':
+            # Update based on quiz performance from actual_performance
+            if actual_performance and 'quizzes' in actual_performance:
+                quiz_data = actual_performance['quizzes']
+                avg_score = quiz_data.get('avg_score', 0)
+                target_score = goal.target_metrics.get('target_score', 100)
+                percentage = int((avg_score / target_score * 100)) if target_score > 0 else 0
+                
+                goal.current_progress = {
+                    "avg_score": float(avg_score),
+                    "target_score": target_score,
+                    "percentage": float(percentage),
+                    "on_track": avg_score >= (target_score * 0.8)  # 80% of target
+                }
+                goal.completion_percentage = percentage
+                
+                if avg_score >= target_score and goal.status == 'active':
+                    goal.status = 'completed'
+                    goal.completed_at = datetime.utcnow()
+                    goal.actual_completion_date = date.today()
+        
+        elif goal.goal_type == 'time_based':
+            # Update based on study time
+            target_hours = goal.target_metrics.get('study_time', 0)
+            current_hours = (actual_minutes_spent / 60.0) + (goal.current_progress.get('hours', 0) if isinstance(goal.current_progress, dict) else 0)
+            percentage = int((current_hours / target_hours * 100)) if target_hours > 0 else 0
+            
+            goal.current_progress = {
+                "hours": float(current_hours),
+                "target_hours": target_hours,
+                "percentage": float(percentage),
+                "on_track": percentage >= 0
+            }
+            goal.completion_percentage = percentage
+            
+            if current_hours >= target_hours and goal.status == 'active':
+                goal.status = 'completed'
+                goal.completed_at = datetime.utcnow()
+                goal.actual_completion_date = date.today()
+        
+        else:
+            # Default: tasks_completed or general progress
+            if goal.current_progress is None or not isinstance(goal.current_progress, dict):
+                goal.current_progress = {"tasks_completed": 0}
+            
+            current_tasks = goal.current_progress.get('tasks_completed', 0) + completed_tasks_count
+            goal.current_progress['tasks_completed'] = current_tasks
+            
+            if 'tasks_completed' in goal.target_metrics:
+                target = goal.target_metrics['tasks_completed']
+                percentage = int((current_tasks / target * 100)) if target > 0 else 0
+                goal.current_progress['percentage'] = float(percentage)
+                goal.completion_percentage = percentage
+                
+                if current_tasks >= target and goal.status == 'active':
+                    goal.status = 'completed'
+                    goal.completed_at = datetime.utcnow()
+                    goal.actual_completion_date = date.today()
+        
+        # Update is_on_track and days_behind using update_goal_progress logic
+        today = date.today()
+        total_days = (goal.target_date - goal.start_date).days
+        days_passed = (today - goal.start_date).days
+        expected_progress = (days_passed / total_days * 100) if total_days > 0 else 0
+        
+        goal.is_on_track = goal.completion_percentage >= (expected_progress - 10)  # 10% tolerance
+        goal.days_behind = max(0, int((expected_progress - goal.completion_percentage) / (100 / total_days)) if total_days > 0 else 0)
     
     db.commit()
     db.refresh(db_plan)

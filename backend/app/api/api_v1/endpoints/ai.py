@@ -108,6 +108,11 @@ async def generate_quiz_from_document(
         )
 
         quiz_schema = QuizSchema.from_orm(quiz_obj)
+        quiz_questions_payload = []
+        for question in quiz_schema.questions:
+            question_dict = question.dict()
+            question_dict.setdefault("question", question_dict.get("question_text", ""))
+            quiz_questions_payload.append(question_dict)
 
         return {
             "message": "Quiz generated and saved successfully",
@@ -117,7 +122,8 @@ async def generate_quiz_from_document(
             "ai_provider": result["ai_provider"],
             "ai_model": result["ai_model"],
             "generated_by": result["ai_provider"],
-            "quiz": quiz_schema.dict()
+            "quiz": quiz_questions_payload,
+            "quiz_details": quiz_schema.dict()
         }
 
     except Exception as e:
@@ -188,6 +194,7 @@ async def generate_flashcards_from_document(
 
         return {
             "message": "Flashcards generated and saved successfully",
+            "flashcards": created_flashcards,
             "flashcards_created": created_flashcards,
             "document_id": document_id,
             "ai_provider": result.get("ai_provider", "unknown"),

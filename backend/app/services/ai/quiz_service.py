@@ -42,11 +42,12 @@ class QuizGenerationService:
 
     @staticmethod
     def _build_quiz_prompt(text: str, quiz_type: str, num_questions: int) -> str:
-        if quiz_type == "mcq":
+        # Map quiz types to consistent format
+        if quiz_type == "multiple_choice" or quiz_type == "mcq":
             return f"""Generate {num_questions} multiple choice questions from the following text:
 
 Text: {text}
-
+    
 Format each question as:
 Q: [Question]
 A) [Option A]
@@ -56,7 +57,7 @@ D) [Option D]
 Correct: [Letter]
 
 Questions:"""
-        if quiz_type == "fill_blank":
+        if quiz_type == "fill_blank" or quiz_type == "fill_in_the_blank":
             return f"""Generate {num_questions} fill-in-the-blank questions from the following text:
 
 Text: {text}
@@ -66,6 +67,7 @@ Q: [Question with _____ for blanks]
 A: [Answer]
 
 Questions:"""
+        # Default to mixed if not specified
         return f"""Generate {num_questions} mixed quiz questions (MCQ and fill-in-the-blank) from the following text:
 
 Text: {text}
