@@ -176,7 +176,7 @@ export default function DashboardPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => navigate('/today-plan')}
+                onClick={() => navigate('/study-schedule')}
               >
                 View Full <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                 {todayPlan.plan.status === 'pending' && (
                   <Button
                     className="w-full"
-                    onClick={() => navigate('/today-plan')}
+                    onClick={() => navigate('/study-schedule')}
                   >
                     Start Today's Plan 🚀
                   </Button>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                   <Button
                     className="w-full"
                     variant="outline"
-                    onClick={() => navigate('/today-plan')}
+                    onClick={() => navigate('/study-schedule')}
                   >
                     Continue Plan ({todayPlan.plan.completed_tasks_count}/{todayPlan.plan.total_tasks_count} done)
                   </Button>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
               <div className="text-center py-6">
                 <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-500 mb-3">No plan for today yet</p>
-                <Button size="sm" onClick={() => navigate('/today-plan')}>
+                <Button size="sm" onClick={() => navigate('/study-schedule')}>
                   Generate Plan
                 </Button>
               </div>

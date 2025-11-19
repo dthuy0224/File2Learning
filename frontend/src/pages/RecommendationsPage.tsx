@@ -39,7 +39,7 @@ const RecommendationsPage = () => {
 
   // Fetch today's plan to check which recommendations are included
   const { data: todayPlanData } = useQuery({
-    queryKey: ['today-plan'],
+    queryKey: ['todayPlan'],
     queryFn: () => dailyPlanService.getTodayPlan()
   });
 
@@ -83,9 +83,9 @@ const RecommendationsPage = () => {
     onSuccess: (data) => {
       toast.success(data.message || 'Plan regenerated successfully!');
       queryClient.invalidateQueries({ queryKey: ['todayPlan'] });
-      queryClient.invalidateQueries({ queryKey: ['today-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['todayPlan'] });
       // Navigate to today's plan page
-      navigate('/today-plan');
+      navigate('/study-schedule');
     },
     onError: () => {
       toast.error('Failed to regenerate plan');
@@ -147,7 +147,6 @@ const RecommendationsPage = () => {
   }
 
   const recommendations = recommendationsData?.recommendations || [];
-  const activeCount = recommendationsData?.active_count || 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
