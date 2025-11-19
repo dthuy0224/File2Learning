@@ -1,6 +1,7 @@
 // src/store/useNotificationStore.ts
 import { create } from "zustand";
 import api from "../services/api";
+import { useAuthStore } from "./authStore";
 
 export interface Notification {
   id: number;
@@ -22,13 +23,15 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   fetchNotifications: async () => {
     try {
-      const userId = localStorage.getItem("user-id");
-      if (!userId) {
-        console.warn("No user-id in localStorage, skipping fetchNotifications");
+      // Lấy user từ authStore thay vì localStorage
+      const user = useAuthStore.getState().user;
+      if (!user || !user.id) {
+        console.warn("No user in authStore, skipping fetchNotifications");
         set({ notifications: [] });
         return;
       }
 
+      const userId = user.id;
       console.log("Fetching notifications for user:", userId);
 
       // Chỉ gọi /notifications vì baseURL + proxy sẽ rewrite sang backend /api/v1/notifications
@@ -66,12 +69,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   markAllAsRead: async () => {
     try {
-      const userId = localStorage.getItem("user-id");
-      if (!userId) {
-        console.warn("No user-id in localStorage, skipping markAllAsRead");
+      // Lấy user từ authStore thay vì localStorage
+      const user = useAuthStore.getState().user;
+      if (!user || !user.id) {
+        console.warn("No user in authStore, skipping markAllAsRead");
         return;
       }
 
+      const userId = user.id;
       await api.post(`/notifications/read-all/${userId}`);
       set({
         notifications: get().notifications.map((n) => ({ ...n, isRead: true })),
