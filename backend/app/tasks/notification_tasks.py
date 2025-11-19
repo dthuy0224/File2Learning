@@ -1,44 +1,112 @@
-# app/tasks/notification_tasks.py
-from app.tasks.celery_app import celery_app
-from app.core.database import SessionLocal
+from celery import shared_task
 from sqlalchemy.orm import Session
-from app.crud import crud_notification
-from app.schemas.notification import NotificationCreate
-from app.models.user import User
+from datetime import date
+import logging
 
-@celery_app.task(name="auto_generate_notifications")
-def auto_generate_notifications():
+from app.core.database import SessionLocal
+from app.models.user import User
+from app.models.notification import Notification
+from app.core.email import send_email
+
+# Import đúng file model
+from app.models.daily_plan import DailyStudyPlan
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(name="check_daily_study_progress")
+def check_daily_study_progress():
     """
-    Mỗi phút task này sẽ chạy và tạo thông báo mới cho user.
-    Sau này bạn chỉ cần thay logic check điều kiện là được.
+    Task chạy mỗi tối (20:00).
+    Kiểm tra xem user đã hoàn thành bài học hôm nay chưa.
     """
     db: Session = SessionLocal()
-
     try:
-        # Lấy tất cả user (bạn có thể filter theo active)
-        users = db.query(User).all()
+        today = date.today()
+        users = db.query(User).filter(User.is_active == True).all()
+        count_reminded = 0
 
-        created = 0
+        logger.info(
+            f"🚀 Bắt đầu kiểm tra tiến độ ngày {today} cho {len(users)} users..."
+        )
 
         for user in users:
-
-            # --- LOGIC TẠM THỜI ---
-            # Ví dụ: Mỗi phút gửi 1 thông báo cho mỗi user để test
-            notif_data = NotificationCreate(
-                user_id=user.id,
-                title="Thông báo mới tự động",
-                body="Đây là thông báo được Celery tạo tự động.",
+            # Tìm plan của hôm nay
+            daily_plan = (
+                db.query(DailyStudyPlan)
+                .filter(
+                    DailyStudyPlan.user_id == user.id,
+                    # --- SỬA LỖI TẠI ĐÂY: Đổi .date thành .plan_date ---
+                    DailyStudyPlan.plan_date == today,
+                    # -------------------------------------------------
+                )
+                .first()
             )
-            crud_notification.create_notification(db, notif_data)
-            created += 1
 
-        print(f"[Celery] Created {created} notifications.")
+            should_remind = False
+            msg_title = ""
+            msg_body = ""
 
-        return {"created": created}
+            # Logic kiểm tra
+            if not daily_plan:
+                should_remind = True
+                msg_title = "⚠️ Bạn chưa lập kế hoạch học tập!"
+                msg_body = f"Xin chào {user.username or 'bạn'}, hôm nay bạn chưa thiết lập mục tiêu học tập. Hãy dành 5 phút để bắt đầu nhé!"
+
+            elif daily_plan.status != "completed":
+                should_remind = True
+                msg_title = "⏰ Nhắc nhở: Hoàn thành bài học ngay!"
+                msg_body = f"Xin chào {user.username or 'bạn'}, bạn vẫn chưa hoàn thành kế hoạch học tập hôm nay. Cố lên, chỉ còn một chút nữa thôi!"
+
+            # Thực hiện gửi (nếu cần)
+            if should_remind:
+                # 1. Lưu thông báo vào Web
+                new_notif = Notification(
+                    user_id=user.id,
+                    title=msg_title,
+                    body=msg_body,
+                    type="reminder",
+                    is_read=False,
+                )
+                db.add(new_notif)
+
+                # 2. Gửi Email
+                if user.email:
+                    html_content = f"""
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                        <h2 style="color: #d97706; text-align: center;">{msg_title}</h2>
+                        <p style="font-size: 16px; color: #333;">{msg_body}</p>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="http://localhost:3000/dashboard" 
+                               style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                               Vào học ngay 🚀
+                            </a>
+                        </div>
+                        <p style="margin-top: 30px; font-size: 12px; color: #666; text-align: center;">
+                            File2Learning Automation System
+                        </p>
+                    </div>
+                    """
+                    send_email(
+                        subject=msg_title,
+                        to=user.email,
+                        body=html_content,
+                        is_html=True,
+                    )
+
+                count_reminded += 1
+
+        db.commit()
+        logger.info(f"✅ Hoàn tất. Đã nhắc nhở {count_reminded} người dùng.")
+        return f"Reminded {count_reminded} users"
 
     except Exception as e:
-        print("❌ Celery error:", e)
-        return {"error": str(e)}
-
+        logger.error(f"❌ Lỗi trong quá trình chạy task: {e}")
+        db.rollback()
     finally:
         db.close()
+
+
+@shared_task(name="auto_generate_notifications")
+def auto_generate_notifications():
+    pass
