@@ -14,7 +14,7 @@ if _root_env:
 
 class CustomEnvSettingsSource(EnvSettingsSource):
     """Custom env source that handles comma-separated strings for List fields"""
-    
+
     def __call__(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {}
         for field_name, field_info in self.settings_cls.model_fields.items():
@@ -27,15 +27,19 @@ class CustomEnvSettingsSource(EnvSettingsSource):
                     # Handle typing.List and list
                     try:
                         import typing
-                        if hasattr(typing, 'get_origin'):
+
+                        if hasattr(typing, "get_origin"):
                             origin = typing.get_origin(field_type)
                         else:
-                            origin = getattr(field_type, '__origin__', None)
-                        
+                            origin = getattr(field_type, "__origin__", None)
+
                         if origin is list or origin is List:
                             # If it's a list field and value doesn't look like JSON, keep as string
                             # The validator will handle the parsing
-                            if not (env_val.strip().startswith('[') and env_val.strip().endswith(']')):
+                            if not (
+                                env_val.strip().startswith("[")
+                                and env_val.strip().endswith("]")
+                            ):
                                 d[field_name] = env_val
                                 continue
                     except Exception:
@@ -43,58 +47,68 @@ class CustomEnvSettingsSource(EnvSettingsSource):
                 d[field_name] = env_val
         return d
 
+
 class Settings(BaseSettings):
     # Basic app config
     PROJECT_NAME: str = "File2Learning"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
-    
+
     # Security
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
-    
+
     # Database
-    DATABASE_URL: str = "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning"
+    # Ưu tiên dùng biến môi trường, fallback về giá trị mặc định
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning",
+    )
     POSTGRESQL_DATABASE_URL: Optional[str] = None  # can override in prod
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Log db config (optional)
-        print("Database Configuration:")
-        print(f"   URL: {self.DATABASE_URL}")
-        print(f"   Type: PostgreSQL")
-        print(f"   Database: file2learning")
-    
+        # print("Database Configuration:")
+        # print(f"   URL: {self.DATABASE_URL}")
+
     # CORS / Hosts
     ALLOWED_HOSTS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
     ]
 
+    # Config CORS cho Backend
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
-    # Frontend URL 
+    # Frontend URL
     FRONTEND_URL: str = "http://localhost:3000"
-    
+
     # AI/OpenAI
     OPENAI_API_KEY: Optional[str] = None
-    
+    GEMINI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
-    
+
     # File uploads
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
     UPLOAD_FOLDER: str = "uploads"
     ALLOWED_FILE_EXTENSIONS: List[str] = [".pdf", ".docx", ".txt", ".doc", ".docs"]
-    
-    # Email
-    SMTP_SERVER: Optional[str] = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+
+    # --- Email Configuration ---
+    # Đổi tên SMTP_SERVER -> SMTP_HOST để khớp với file email.py
+    SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", 465))  # Mặc định 465 cho SSL
     SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
     SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
     SMTP_FROM_EMAIL: Optional[str] = os.getenv("SMTP_FROM_EMAIL")
-
 
     # OAuth providers
     GOOGLE_CLIENT_ID: Optional[str] = None
@@ -109,26 +123,29 @@ class Settings(BaseSettings):
 
     # OAuth base URL
     OAUTH_BASE_URL: str = "http://localhost:8000"
-    
+
     # Validators
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str]) -> str:
         if v and v.startswith("postgresql://"):
             return v.replace("postgresql://", "postgresql+psycopg2://", 1)
-        return v or "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning"
-    
+        return (
+            v
+            or "postgresql+psycopg2://app_user:app_password@postgres:5432/file2learning"
+        )
+
     @field_validator("UPLOAD_FOLDER", mode="before")
     @classmethod
     def create_upload_folder(cls, v: str) -> str:
         upload_path = Path(v)
         upload_path.mkdir(exist_ok=True)
         return str(upload_path)
-    
-    @field_validator("ALLOWED_HOSTS", mode="before")
+
+    @field_validator("ALLOWED_HOSTS", "BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def parse_allowed_hosts(cls, v: Union[str, List[str], None]) -> List[str]:
-        """Parse ALLOWED_HOSTS from comma-separated string or list"""
+        """Parse list from comma-separated string or list"""
         if v is None:
             return []
         if isinstance(v, str):
@@ -140,7 +157,7 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return []
-    
+
     @field_validator("ALLOWED_FILE_EXTENSIONS", mode="before")
     @classmethod
     def parse_allowed_extensions(cls, v: Union[str, List[str], None]) -> List[str]:
@@ -158,12 +175,9 @@ class Settings(BaseSettings):
         return [".pdf", ".docx", ".txt", ".doc", ".docs"]
 
     model_config = SettingsConfigDict(
-        case_sensitive=True,
-        extra="allow",
-        env_parse_none_str="",
-        env_ignore_empty=True
+        case_sensitive=True, extra="allow", env_parse_none_str="", env_ignore_empty=True
     )
-    
+
     @classmethod
     def settings_customise_sources(
         cls,
@@ -187,7 +201,7 @@ class Settings(BaseSettings):
             "database": "file2learning",
             "url": self.DATABASE_URL,
             "host": "postgres",
-            "connection_status": "Connected"
+            "connection_status": "Connected",
         }
 
 
